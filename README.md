@@ -1,4 +1,5 @@
-Some tweets were written using unnecessarily inflammatory/divisive language, even if the underlying content is great. This Chrome extension analyzes all of your tweets, assigns them an "inflammatory score," and neutrally rewords any tweet that's past a threshold that you set.
+Some tweets use unnecessarily inflammatory/divisive language, even though the underlying content is great. This Chrome extension analyzes all of the tweets on your timeline, assigns them an "inflammatory score," and neutrally rewords any tweet that's past a threshold that you set. It also unobtrusively shows you the score of each tweet on your timeline, so you can get a quick read on how polarizingly written a particular tweet was.
+
 
 # Setup
 ## OpenAI API
