@@ -2,6 +2,8 @@
 let apiKey = "";
 let inflammatoryCutoff = 0.2; // default cutoff
 
+const API_MODEL = "gpt-4o";
+
 // Fetch API key and cutoff from storage
 chrome.storage.sync.get(["apiKey", "inflammatoryCutoff"], (result) => {
   if (result.apiKey) {
@@ -121,7 +123,7 @@ async function isControversial(text) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: API_MODEL,
         messages: [
           {
             role: "system",
@@ -198,7 +200,7 @@ async function processTweet(tweetElement) {
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: "gpt-4-0125-preview",
+            model: API_MODEL,
             messages: [
               {
                 role: "system",
@@ -227,7 +229,7 @@ async function processTweet(tweetElement) {
               Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-              model: "gpt-4-0125-preview",
+              model: API_MODEL,
               messages: [
                 {
                   role: "system",
@@ -322,7 +324,7 @@ async function processTweet(tweetElement) {
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: "gpt-4-0125-preview",
+            model: API_MODEL,
             messages: [
               {
                 role: "system",
