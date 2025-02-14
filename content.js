@@ -205,7 +205,7 @@ async function processTweet(tweetElement) {
               {
                 role: "system",
                 content:
-                  "Rephrase the following text to use more constructive, measured language while preserving the core message. Keep length under 280 characters. Maintain any paragraph breaks. IMPORTANT: Preserve ALL of the original information - do not truncate or omit any details.",
+                  "Rephrase the following text to use more constructive, measured language while preserving the core message. Keep length under 280 characters. Maintain any paragraph breaks. IMPORTANT: Preserve ALL of the original information - do not truncate or omit any of the underlying content. Ensure that the rephrasing is even and calm.",
               },
               {
                 role: "user",
