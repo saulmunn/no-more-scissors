@@ -2,7 +2,8 @@
 let apiKey = "";
 let inflammatoryCutoff = 0.2; // default cutoff
 
-const API_MODEL = "gpt-4o";
+const EVAL_MODEL = "gpt-4o-mini"; // For quick evaluation
+const REWRITE_MODEL = "gpt-4.5-preview"; // For high-quality rewording
 
 // Fetch API key and cutoff from storage
 chrome.storage.sync.get(["apiKey", "inflammatoryCutoff"], (result) => {
@@ -123,7 +124,7 @@ async function isControversial(text) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: API_MODEL,
+        model: EVAL_MODEL,
         messages: [
           {
             role: "system",
@@ -153,263 +154,188 @@ async function isControversial(text) {
   }
 }
 
-/*
- * Process each tweet element:
- * - Preserves tweet text and gets controversy data.
- * - If inflammatory, fetches the depolarized text and creates a toggle button.
- * - Creates a UI container (displayed as a flex row) inserted between tweet content and tweet actions.
- *   The left side contains the depolarized toggle (if available) and the right side displays the inflammation score.
- */
+// Add after the existing cache declaration
+class TweetQueue {
+  constructor() {
+    this.queue = [];
+    this.processing = false;
+    this.maxConcurrent = 3;
+    this.activeRequests = 0;
+  }
+
+  async add(tweet) {
+    this.queue.push(tweet);
+    if (!this.processing) {
+      this.processing = true;
+      await this.process();
+    }
+  }
+
+  async process() {
+    while (this.queue.length > 0 && this.activeRequests < this.maxConcurrent) {
+      const tweet = this.queue.shift();
+      this.activeRequests++;
+      try {
+        await processTweet(tweet);
+      } catch (error) {
+        console.error("Error processing tweet:", error);
+        // Retry once if failed
+        if (!tweet.hasAttribute("data-retried")) {
+          tweet.setAttribute("data-retried", "true");
+          this.queue.unshift(tweet);
+        }
+      } finally {
+        this.activeRequests--;
+      }
+    }
+    this.processing = this.queue.length > 0;
+  }
+}
+
+const tweetQueue = new TweetQueue();
+
+// Replace the existing processTweet function
 async function processTweet(tweetElement) {
   if (
     tweetElement.hasAttribute("data-processed") ||
     tweetElement.hasAttribute("data-processing")
-  )
+  ) {
     return;
+  }
+
   tweetElement.setAttribute("data-processing", "true");
 
-  // Remove any existing UI container (if reprocessing)
-  const existingUI = tweetElement.querySelector(".tweet-ui-container");
-  if (existingUI) existingUI.remove();
+  try {
+    // Remove any existing UI container
+    const existingUI = tweetElement.querySelector(".tweet-ui-container");
+    if (existingUI) existingUI.remove();
 
-  const textDiv = tweetElement.querySelector('[data-testid="tweetText"]');
-  if (!textDiv) {
-    tweetElement.removeAttribute("data-processing");
-    return;
-  }
-  if (!apiKey) {
-    tweetElement.removeAttribute("data-processing");
-    return;
-  }
-
-  const structure = preserveStructure(textDiv);
-  const tweetText = structure.content;
-
-  // Get controversy data from GPT
-  const controversyData = await isControversial(tweetText);
-
-  if (controversyData.isControversial) {
-    try {
-      // First call to get the reworded text.
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: API_MODEL,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Rephrase the following text to use more constructive, measured language while preserving the core message. Keep length under 280 characters. Maintain any paragraph breaks. IMPORTANT: Preserve ALL of the original information - do not truncate or omit any of the underlying content. Ensure that the rephrasing is even and calm.",
-              },
-              {
-                role: "user",
-                content: tweetText,
-              },
-            ],
-          }),
-        }
-      );
-      const data = await response.json();
-      let depolarizedText = data.choices[0].message.content.trim();
-
-      // If the reworded text is over 280 characters, call GPT again for a minimal adjustment.
-      if (depolarizedText.length > 280) {
-        const secondResponse = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: API_MODEL,
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are an expert at making minimal changes to reduce the length of text while preserving all the original information. The text provided is slightly too long. Please make as few wording edits as possible so that the final version is just under 280 characters, without omitting any important details or core information.",
-                },
-                {
-                  role: "user",
-                  content: depolarizedText,
-                },
-              ],
-              max_tokens: 10, // Adjust if necessary
-            }),
-          }
-        );
-        const secondData = await secondResponse.json();
-        let newDepolarizedText = secondData.choices[0].message.content.trim();
-
-        // If it’s still over 280 characters, you might want to loop or fall back to trimming.
-        if (newDepolarizedText.length > 280) {
-          console.warn(
-            "Second attempt still too long; trimming to 280 characters."
-          );
-          newDepolarizedText = newDepolarizedText.substring(0, 280);
-        }
-        depolarizedText = newDepolarizedText;
-      }
-
-      console.log("Original text:", tweetText);
-      console.log("Final depolarized text:", depolarizedText);
-
-      // Create the toggle button using the final depolarized text.
-      const toggleButton = document.createElement("button");
-      toggleButton.className = "toggle-button";
-      toggleButton.textContent = "🕊️ Depolarized (show original)";
-
-      const showOriginal = () => {
-        while (textDiv.firstChild) {
-          textDiv.removeChild(textDiv.firstChild);
-        }
-        textDiv.textContent = tweetText;
-        toggleButton.textContent = "Show depolarized version";
-      };
-
-      const showDepolarized = () => {
-        while (textDiv.firstChild) {
-          textDiv.removeChild(textDiv.firstChild);
-        }
-        textDiv.textContent = depolarizedText;
-        toggleButton.textContent = "🕊️ Depolarized (show original)";
-      };
-
-      let isShowingOriginal = false;
-      toggleButton.onclick = () => {
-        isShowingOriginal = !isShowingOriginal;
-        if (isShowingOriginal) {
-          showOriginal();
-        } else {
-          showDepolarized();
-        }
-      };
-
-      // Initially display the depolarized version.
-      showDepolarized();
-      leftContainer.appendChild(toggleButton);
-      tweetElement.classList.add("depolarized-tweet");
-    } catch (error) {
-      console.error("Error processing tweet:", error);
+    const textDiv = tweetElement.querySelector('[data-testid="tweetText"]');
+    if (!textDiv) {
+      throw new Error("Tweet text element not found");
     }
-  }
 
-  // Create the main UI container with flex layout
-  const uiContainer = document.createElement("div");
-  uiContainer.className = "tweet-ui-container";
+    if (!apiKey) {
+      throw new Error("API key not set");
+    }
 
-  // Left container for the depolarized toggle button
-  const leftContainer = document.createElement("div");
-  leftContainer.className = "left";
-  // Right container for the inflammation score
-  const rightContainer = document.createElement("div");
-  rightContainer.className = "right";
+    const structure = preserveStructure(textDiv);
+    const tweetText = structure.content;
 
-  // If the tweet is inflammatory, fetch and display the depolarized text toggle button
-  if (controversyData.isControversial) {
-    try {
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: API_MODEL,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Rephrase the following tweet to use more constructive, measured language while preserving the core message. Keep length under 280 characters. Maintain any paragraph breaks. Try not to make it sound too coorporate. It should fit the level of formality of the original tweet to some extent. If it seems to be a statement by an individual, reflect that accordingly instead of making it seem like a wide spread opinion or wider conversation summarized, only use the information at your disposal and infer the scope. The goal is to make the text less inflammatory. IMPORTANT: Preserve ALL of the original information - do not truncate or omit any details.",
-              },
-              {
-                role: "user",
-                content: tweetText,
-              },
-            ],
-          }),
-        }
-      );
-      const data = await response.json();
-      const depolarizedText = data.choices[0].message.content;
-      if (depolarizedText.length <= 280) {
+    // Get controversy data from GPT with retry
+    const controversyData = await fetchWithRetry(async () => {
+      return await isControversial(tweetText);
+    });
+
+    // Create UI container
+    const uiContainer = document.createElement("div");
+    uiContainer.className = "tweet-ui-container";
+
+    // Create score display
+    const scoreButton = document.createElement("button");
+    scoreButton.className = "toggle-button score-button";
+    scoreButton.textContent = `Inflammation score: ${controversyData.score.toFixed(
+      2
+    )}`;
+
+    // Create left container for depolarized toggle
+    const leftContainer = document.createElement("div");
+    leftContainer.className = "left";
+
+    // Create right container for score
+    const rightContainer = document.createElement("div");
+    rightContainer.className = "right";
+    rightContainer.appendChild(scoreButton);
+
+    if (controversyData.isControversial) {
+      try {
+        const depolarizedText = await fetchWithRetry(async () => {
+          return await getDepolarizedText(tweetText);
+        });
+
         const toggleButton = document.createElement("button");
         toggleButton.className = "toggle-button";
         toggleButton.textContent = "🕊️ Depolarized (show original)";
-        const showOriginal = () => {
-          while (textDiv.firstChild) {
-            textDiv.removeChild(textDiv.firstChild);
-          }
-          textDiv.textContent = tweetText;
-          toggleButton.textContent = "Show depolarized version";
-        };
-        const showDepolarized = () => {
-          while (textDiv.firstChild) {
-            textDiv.removeChild(textDiv.firstChild);
-          }
-          textDiv.textContent = depolarizedText;
-          toggleButton.textContent = "🕊️ Depolarized (show original)";
-        };
-        let isShowingOriginal = false;
-        toggleButton.onclick = () => {
-          isShowingOriginal = !isShowingOriginal;
-          if (isShowingOriginal) {
-            showOriginal();
-          } else {
-            showDepolarized();
-          }
-        };
-        // Initial state: show depolarized version
-        showDepolarized();
+
+        const toggleState = new ToggleState(
+          textDiv,
+          tweetText,
+          depolarizedText
+        );
+        toggleButton.onclick = () => toggleState.toggle();
+
+        // Initially show depolarized version
+        toggleState.update();
         leftContainer.appendChild(toggleButton);
         tweetElement.classList.add("depolarized-tweet");
+      } catch (error) {
+        console.error("Error creating depolarized version:", error);
       }
-    } catch (error) {
-      console.error("Error processing tweet:", error);
     }
+
+    // Assemble UI
+    uiContainer.appendChild(leftContainer);
+    uiContainer.appendChild(rightContainer);
+
+    // Insert UI container
+    const tweetActions = tweetElement.querySelector('div[role="group"]');
+    if (tweetActions) {
+      tweetActions.insertAdjacentElement("beforebegin", uiContainer);
+    } else {
+      textDiv.parentNode.insertBefore(uiContainer, textDiv.nextSibling);
+    }
+
+    tweetElement.setAttribute("data-processed", "true");
+  } catch (error) {
+    console.error("Error processing tweet:", error);
+  } finally {
+    tweetElement.removeAttribute("data-processing");
   }
-
-  // Create and append the inflammation score button to the right container
-  const scoreButton = document.createElement("button");
-  scoreButton.className = "toggle-button score-button";
-  scoreButton.textContent =
-    "Inflammation score: " + controversyData.score.toFixed(2);
-  rightContainer.appendChild(scoreButton);
-
-  // Append left and right containers into the UI container
-  uiContainer.appendChild(leftContainer);
-  uiContainer.appendChild(rightContainer);
-
-  // Insert the UI container between the tweet content and the tweet actions.
-  // Try to find the tweet actions container (commonly with role="group")
-  const tweetActions = tweetElement.querySelector('div[role="group"]');
-  if (tweetActions) {
-    tweetActions.insertAdjacentElement("beforebegin", uiContainer);
-  } else {
-    // If not found, insert after the tweet text container
-    textDiv.parentNode.insertBefore(uiContainer, textDiv.nextSibling);
-  }
-
-  tweetElement.setAttribute("data-processed", "true");
-  tweetElement.removeAttribute("data-processing");
 }
 
-// Observer to catch dynamically loaded tweets
+// Add helper functions
+async function fetchWithRetry(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, i))
+      );
+    }
+  }
+}
+
+class ToggleState {
+  constructor(textDiv, originalText, depolarizedText) {
+    this.textDiv = textDiv;
+    this.originalText = originalText;
+    this.depolarizedText = depolarizedText;
+    this.isShowingOriginal = false;
+  }
+
+  toggle() {
+    this.isShowingOriginal = !this.isShowingOriginal;
+    this.update();
+  }
+
+  update() {
+    this.textDiv.textContent = this.isShowingOriginal
+      ? this.originalText
+      : this.depolarizedText;
+  }
+}
+
+// Replace the existing observer setup
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     mutation.addedNodes.forEach((node) => {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        const tweets = node.querySelectorAll('article[data-testid="tweet"]');
-        tweets.forEach(processTweet);
+        const tweets = node.querySelectorAll(
+          'article[data-testid="tweet"]:not([data-processed])'
+        );
+        tweets.forEach((tweet) => tweetQueue.add(tweet));
       }
     });
   });
@@ -419,3 +345,72 @@ observer.observe(document.body, {
   childList: true,
   subtree: true,
 });
+
+async function getDepolarizedText(tweetText) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: REWRITE_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Rephrase the following text to use more constructive, measured language while preserving the core message. Keep length under 280 characters. Maintain any paragraph breaks. IMPORTANT: Preserve ALL of the original information - do not truncate or omit any of the underlying content. Ensure that the rephrasing is even and calm.",
+        },
+        {
+          role: "user",
+          content: tweetText,
+        },
+      ],
+    }),
+  });
+
+  const data = await response.json();
+  let depolarizedText = data.choices[0].message.content.trim();
+
+  // If the reworded text is over 280 characters, call GPT again for a minimal adjustment
+  if (depolarizedText.length > 280) {
+    const secondResponse = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: REWRITE_MODEL,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert at making minimal changes to reduce the length of text while preserving all the original information. The text provided is slightly too long. Please make as few wording edits as possible so that the final version is just under 280 characters, without omitting any important details or core information.",
+            },
+            {
+              role: "user",
+              content: depolarizedText,
+            },
+          ],
+          max_tokens: 10,
+        }),
+      }
+    );
+
+    const secondData = await secondResponse.json();
+    depolarizedText = secondData.choices[0].message.content.trim();
+
+    // If still too long, trim it
+    if (depolarizedText.length > 280) {
+      console.warn(
+        "Text still too long after second attempt; trimming to 280 characters"
+      );
+      depolarizedText = depolarizedText.substring(0, 280);
+    }
+  }
+
+  return depolarizedText;
+}
