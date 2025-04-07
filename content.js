@@ -3,7 +3,7 @@ let apiKey = "";
 let inflammatoryCutoff = 0.2; // default cutoff
 
 const EVAL_MODEL = "gpt-4o-mini"; // For quick evaluation
-const REWRITE_MODEL = "gpt-4.5-preview"; // For high-quality rewording
+const REWRITE_MODEL = "gpt-4o"; // For high-quality rewording
 
 // Fetch API key and cutoff from storage
 chrome.storage.sync.get(["apiKey", "inflammatoryCutoff"], (result) => {
@@ -18,23 +18,32 @@ chrome.storage.sync.get(["apiKey", "inflammatoryCutoff"], (result) => {
 // Cache for processed tweets
 const tweetCache = new Map();
 
-// Quick local pre-filter patterns (optional)
+// Optimize the quick pre-filter patterns
 const quickPatterns = {
-  aggressive: /(!|\?){1,}|[A-Z]{2,}|^[^a-z]*$/,
+  aggressive: /(!|\?){2,}|[A-Z]{3,}|^[^a-z]*$/,
   negative:
-    /\b(bad|wrong|hate|stupid|awful|terrible|horrible|dumb|idiot|fail)\b/i,
+    /\b(bad|wrong|hate|stupid|awful|terrible|horrible|dumb|idiot|fail|terrible|worst|disgusting|pathetic|ridiculous)\b/i,
   extremes:
-    /\b(every|always|never|none|all|impossible|definitely|absolutely|literally)\b/i,
-  commands: /\b(must|should|need|have to|got to|better|deserve)\b/i,
+    /\b(every|always|never|none|all|impossible|definitely|absolutely|literally|completely|totally)\b/i,
+  commands:
+    /\b(must|should|need|have to|got to|better|deserve|ought|required)\b/i,
+  swear: /\b(fuck|shit|damn|hell|ass|bitch|crap|piss|dick|bastard)\b/i,
 };
 
+// Enhanced quick filter with scoring
 function quickFilter(text) {
-  return (
-    quickPatterns.aggressive.test(text) ||
-    quickPatterns.negative.test(text) ||
-    quickPatterns.extremes.test(text) ||
-    quickPatterns.commands.test(text)
-  );
+  let score = 0;
+  if (quickPatterns.aggressive.test(text)) score += 0.3;
+  if (quickPatterns.negative.test(text)) score += 0.2;
+  if (quickPatterns.extremes.test(text)) score += 0.2;
+  if (quickPatterns.commands.test(text)) score += 0.1;
+  if (quickPatterns.swear.test(text)) score += 0.4;
+
+  // Apply a minimum floor score for any text that matches any pattern
+  // This ensures we don't have too many false negatives at the low end
+  if (score > 0 && score < 0.05) score = 0.05;
+
+  return score;
 }
 
 // Preserve the tweet text structure (for later use in swapping content)
@@ -104,18 +113,94 @@ function restoreStructure(structure, newContent) {
   }
 }
 
-/*
- * Modified isControversial: queries GPT-4 for a controversy score,
- * trims and parses the answer, and then returns an object with both the score
- * and whether it exceeds the cutoff threshold.
- */
+// Enhanced cache with localStorage backup
+class EnhancedCache {
+  constructor(name, maxSize = 1000, expirationMs = 3600000) {
+    this.name = name;
+    this.memoryCache = new Map();
+    this.maxSize = maxSize;
+    this.expirationMs = expirationMs;
+    this.loadFromStorage();
+  }
+
+  loadFromStorage() {
+    try {
+      const stored = localStorage.getItem(this.name);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        for (const [key, value] of Object.entries(parsed)) {
+          if (Date.now() - value.timestamp < this.expirationMs) {
+            this.memoryCache.set(key, value);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load cache from storage:", e);
+    }
+  }
+
+  saveToStorage() {
+    try {
+      const toStore = {};
+      for (const [key, value] of this.memoryCache.entries()) {
+        toStore[key] = value;
+      }
+      localStorage.setItem(this.name, JSON.stringify(toStore));
+    } catch (e) {
+      console.warn("Failed to save cache to storage:", e);
+    }
+  }
+
+  set(key, value) {
+    if (this.memoryCache.size >= this.maxSize) {
+      const oldestKey = this.memoryCache.keys().next().value;
+      this.memoryCache.delete(oldestKey);
+    }
+    this.memoryCache.set(key, {
+      value,
+      timestamp: Date.now(),
+    });
+    this.saveToStorage();
+  }
+
+  get(key) {
+    const item = this.memoryCache.get(key);
+    if (!item) return null;
+    if (Date.now() - item.timestamp > this.expirationMs) {
+      this.memoryCache.delete(key);
+      this.saveToStorage();
+      return null;
+    }
+    return item.value;
+  }
+}
+
+// Initialize enhanced caches
+const controversyCache = new EnhancedCache("controversyCache");
+const depolarizationCache = new EnhancedCache("depolarizationCache");
+
+// Optimized isControversial function
 async function isControversial(text) {
   if (!text || text.length < 5) {
     return { score: 0.0, isControversial: false };
   }
-  if (tweetCache.has(text)) {
-    return tweetCache.get(text);
+
+  // Check cache first
+  const cached = controversyCache.get(text);
+  if (cached) {
+    return cached;
   }
+
+  // Quick pre-filter
+  const quickScore = quickFilter(text);
+
+  // Increased threshold to reduce false negatives - now anything below 0.05 is skipped
+  if (quickScore < 0.05) {
+    const result = { score: quickScore, isControversial: false };
+    controversyCache.set(text, result);
+    return result;
+  }
+
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -124,33 +209,47 @@ async function isControversial(text) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: EVAL_MODEL,
+        model: EVAL_MODEL, // Use gpt-4o-mini for evaluation
         messages: [
           {
             role: "system",
             content:
-              'You are an expert at identifying inflammatory, polarizing, or otherwise unnecessarily negatively-valenced tweets. Consider: 1) controversial/polarizing language, 2) anger/aggression, 3) negativity, 4) hostile tone, 5) extreme language (e.g. swearing, slurs). Read and analyze the tweet, and respond with a score between 0.00 and 1.00 that represents the extent to which the tweet is unnecessarily negative. For example, "Cybertrucks are awesome..." might score 0.05, while a harsh tweet might score 0.9. Respond only with the number.',
+              "Analyze text for inflammatory/polarizing content. Consider negativity, hostility, aggressive tone, polarizing language, anger, extreme claims, and swearing. Score 0.0-1.0, with 0.0 being completely neutral, 0.3 being mildly inflammatory, and 0.7+ for clearly inflammatory content. Even subtle inflammatory content should score at least 0.1-0.2. Respond with number only.",
           },
           {
             role: "user",
             content: text,
           },
         ],
-        max_tokens: 5, // allow a full decimal response
+        max_tokens: 5,
+        temperature: 0.1,
+        top_p: 0.1,
       }),
     });
+
     const data = await response.json();
     const answer = data.choices[0].message.content.trim();
-    const controversyScore = parseFloat(answer);
+    let controversyScore = parseFloat(answer);
+
+    // Apply a minimum floor to the API score to avoid extreme low-end calibration issues
+    if (controversyScore > 0 && controversyScore < 0.05) {
+      controversyScore = 0.05;
+    }
+
     const result = {
-      score: controversyScore,
-      isControversial: controversyScore > inflammatoryCutoff,
+      score: Math.max(controversyScore, quickScore),
+      isControversial:
+        controversyScore > inflammatoryCutoff ||
+        quickScore > inflammatoryCutoff,
     };
-    tweetCache.set(text, result);
+    controversyCache.set(text, result);
     return result;
   } catch (error) {
     console.error("Error checking controversy:", error);
-    return { score: 0.0, isControversial: false };
+    return {
+      score: quickScore,
+      isControversial: quickScore > inflammatoryCutoff,
+    };
   }
 }
 
@@ -194,7 +293,42 @@ class TweetQueue {
 
 const tweetQueue = new TweetQueue();
 
-// Replace the existing processTweet function
+// Add loading state management
+function createLoadingState() {
+  const loadingDiv = document.createElement("div");
+  loadingDiv.className = "loading-state";
+  loadingDiv.innerHTML = '<div class="spinner"></div>';
+  return loadingDiv;
+}
+
+// Add function to detect and handle quote-tweets
+function isQuoteTweet(tweetElement) {
+  return tweetElement.querySelector('[data-testid="tweet"]') !== null;
+}
+
+function getOriginalTweetText(tweetElement) {
+  const quotedTweet = tweetElement.querySelector('[data-testid="tweet"]');
+  if (!quotedTweet) return null;
+  const textDiv = quotedTweet.querySelector('[data-testid="tweetText"]');
+  return textDiv ? textDiv.textContent.trim() : null;
+}
+
+function isSignificantModification(quoteText, originalText) {
+  if (!originalText) return true;
+  // Remove common quote-tweet prefixes and whitespace
+  const cleanQuoteText = quoteText.replace(/^["'`]|["'`]$/g, "").trim();
+  const cleanOriginalText = originalText.replace(/^["'`]|["'`]$/g, "").trim();
+
+  // If the quote text is just the original text with some minor modifications
+  if (cleanQuoteText === cleanOriginalText) return false;
+
+  // If the quote text contains the original text with just some added context
+  if (cleanQuoteText.includes(cleanOriginalText)) return false;
+
+  return true;
+}
+
+// Modify the processTweet function to handle loading states better
 async function processTweet(tweetElement) {
   if (
     tweetElement.hasAttribute("data-processed") ||
@@ -222,14 +356,37 @@ async function processTweet(tweetElement) {
     const structure = preserveStructure(textDiv);
     const tweetText = structure.content;
 
-    // Get controversy data from GPT with retry
-    const controversyData = await fetchWithRetry(async () => {
-      return await isControversial(tweetText);
-    });
+    // Handle quote-tweets
+    if (isQuoteTweet(tweetElement)) {
+      const originalText = getOriginalTweetText(tweetElement);
+      if (!isSignificantModification(tweetText, originalText)) {
+        tweetElement.setAttribute("data-processed", "true");
+        return;
+      }
+    }
 
-    // Create UI container
+    // Create UI container with loading state
     const uiContainer = document.createElement("div");
     uiContainer.className = "tweet-ui-container";
+    const loadingState = createLoadingState();
+    uiContainer.appendChild(loadingState);
+
+    // Insert loading UI immediately
+    const tweetActions = tweetElement.querySelector('div[role="group"]');
+    if (tweetActions) {
+      tweetActions.insertAdjacentElement("beforebegin", uiContainer);
+    } else {
+      textDiv.parentNode.insertBefore(uiContainer, textDiv.nextSibling);
+    }
+
+    // Get controversy score first
+    let controversyData = controversyCache.get(tweetText);
+    if (!controversyData) {
+      controversyData = await fetchWithRetry(async () => {
+        return await isControversial(tweetText);
+      });
+      controversyCache.set(tweetText, controversyData);
+    }
 
     // Create score display
     const scoreButton = document.createElement("button");
@@ -247,11 +404,16 @@ async function processTweet(tweetElement) {
     rightContainer.className = "right";
     rightContainer.appendChild(scoreButton);
 
+    // If controversial, get depolarized text
     if (controversyData.isControversial) {
       try {
-        const depolarizedText = await fetchWithRetry(async () => {
-          return await getDepolarizedText(tweetText);
-        });
+        let depolarizedText = depolarizationCache.get(tweetText);
+        if (!depolarizedText) {
+          depolarizedText = await fetchWithRetry(async () => {
+            return await getDepolarizedText(tweetText);
+          });
+          depolarizationCache.set(tweetText, depolarizedText);
+        }
 
         const toggleButton = document.createElement("button");
         toggleButton.className = "toggle-button";
@@ -262,6 +424,7 @@ async function processTweet(tweetElement) {
           tweetText,
           depolarizedText
         );
+        toggleState.toggleButton = toggleButton;
         toggleButton.onclick = () => toggleState.toggle();
 
         // Initially show depolarized version
@@ -273,21 +436,17 @@ async function processTweet(tweetElement) {
       }
     }
 
-    // Assemble UI
+    // Remove loading state and assemble final UI
+    loadingState.remove();
     uiContainer.appendChild(leftContainer);
     uiContainer.appendChild(rightContainer);
-
-    // Insert UI container
-    const tweetActions = tweetElement.querySelector('div[role="group"]');
-    if (tweetActions) {
-      tweetActions.insertAdjacentElement("beforebegin", uiContainer);
-    } else {
-      textDiv.parentNode.insertBefore(uiContainer, textDiv.nextSibling);
-    }
 
     tweetElement.setAttribute("data-processed", "true");
   } catch (error) {
     console.error("Error processing tweet:", error);
+    // Remove loading state on error
+    const loadingState = tweetElement.querySelector(".loading-state");
+    if (loadingState) loadingState.remove();
   } finally {
     tweetElement.removeAttribute("data-processing");
   }
@@ -313,6 +472,7 @@ class ToggleState {
     this.originalText = originalText;
     this.depolarizedText = depolarizedText;
     this.isShowingOriginal = false;
+    this.toggleButton = null;
   }
 
   toggle() {
@@ -321,9 +481,17 @@ class ToggleState {
   }
 
   update() {
+    // Update text content
     this.textDiv.textContent = this.isShowingOriginal
       ? this.originalText
       : this.depolarizedText;
+
+    // Update button text if button reference exists
+    if (this.toggleButton) {
+      this.toggleButton.textContent = this.isShowingOriginal
+        ? "🕊️ Original (show depolarized)"
+        : "🕊️ Depolarized (show original)";
+    }
   }
 }
 
@@ -354,7 +522,7 @@ async function getDepolarizedText(tweetText) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: REWRITE_MODEL,
+      model: REWRITE_MODEL, // Use gpt-4o for rewriting
       messages: [
         {
           role: "system",
@@ -383,7 +551,7 @@ async function getDepolarizedText(tweetText) {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: REWRITE_MODEL,
+          model: REWRITE_MODEL, // Use gpt-4o for rewriting
           messages: [
             {
               role: "system",
@@ -414,3 +582,28 @@ async function getDepolarizedText(tweetText) {
 
   return depolarizedText;
 }
+
+// Add CSS for loading state
+const style = document.createElement("style");
+style.textContent = `
+  .loading-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+  }
+  
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #1da1f2;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);
