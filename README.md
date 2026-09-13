@@ -9,7 +9,7 @@ _The name is a nod to Scott Alexander's ["Sort by Controversial"](https://slates
 ## What it looks like
 
 - Every post gets a small badge in its header, right after the time: a coloured dot (green → red) and the score, in X's own muted text style. Hover for the one-line reason.
-- Posts at or above your **rewrite threshold** show the calmer wording in place of the original, looking like any other post. Phrases that changed are dotted-underlined, and **Show original** next to the score in the header brings the exact wording back.
+- Posts at or above your **rewrite threshold** show the calmer wording in place of the original, looking like any other post. **Show original** next to the score in the header brings the exact wording back, and once you've compared, the phrases that changed are dotted-underlined in the rewrite.
 - Posts at or above the **collapse threshold** (85 by default) fold into a single line, `Hidden · 92 · dehumanizing language`, with **Show anyway**.
 - Quoted posts are scored and rewritten inside the quote.
 - The compose box shows a live score of what you're about to post. When you reply to a rewritten post, the original wording is shown so you're answering what was actually said.
@@ -72,10 +72,10 @@ Everything lives in the toolbar popup (pin the icon from the puzzle-piece menu).
 | **Provider and key** | OpenAI, Anthropic, or a custom endpoint, each with its own key. Custom endpoints also take a base URL (no trailing `/chat/completions`). |
 | **Rewrite posts scoring …** | Posts at or above this score get rewritten. 40 is the default (clearly hostile or contemptuous posts). Around 25 also catches snark; 70+ leaves everything but insults and rage bait alone. Changing it re-evaluates posts already on screen. |
 | **Collapse posts scoring …** | Posts at or above this score fold into one line with the score and reason. 85 by default; set it to "never" to rewrite everything instead. |
+| **Rewrite strength** | 1 changes only the single most hostile phrase; 3 removes contempt but keeps the voice; 5 is the most charitable calm version of the same argument. Default 4 (calm and matter-of-fact). An extra instruction can be added underneath. |
 | **Score every post** | Off: badges only appear on rewritten and collapsed posts. |
 | **Blur posts until scored** | Blurs each post's text for the second or so it takes to score it, so you never see the original wording of a post that's about to be rewritten. |
 | **Models** | Every post is scored with the cheap, fast model; only posts above the threshold are rewritten, so the rewrite uses a better one. Defaults: `gpt-5.4-nano` / `gpt-5.4-mini` (OpenAI), `claude-haiku-4-5` / `claude-opus-5` (Anthropic). Any model id can be typed in. |
-| **Rewrite style** | **Light** changes as few words as possible. **Neutral** (default) removes the contempt and keeps everything else. **Kind** also assumes good faith and phrases disagreement generously. **Custom** takes your own instruction. Changing the style regenerates rewrites. |
 | **Monthly spend cap** | Stops calling the API once the month's estimated spend reaches this amount. $10 by default; 0 means no cap. |
 
 The popup also shows how many posts have been scored and rewritten, this month's estimated cost, and the last error, if any.
@@ -130,7 +130,7 @@ The monthly spend cap (default $10) is an estimate computed from token counts an
 
 - Posts are scored after they appear, so without the blur option you may glimpse the original for a moment.
 - The rewrite is plain text with links restored for mentions, hashtags, and URLs. Anything more exotic in the original (cashtags, emoji rendered as images) shows up as plain characters.
-- Long posts that X truncates with "Show more" are scored on the visible part.
+- Long posts arrive on the timeline cut off by X (about 275 characters, then a "Show more" button). They are scored and rewritten on the visible part, and the rewrite stops where X stopped, ending with an ellipsis. Open the post to see it in full.
 - Custom endpoints need a model that can return JSON; the extension falls back from strict schemas to plain JSON, but very small local models sometimes still wander.
 - X changes its markup now and then. If badges stop appearing, the selectors at the top of `content/content.js` are the first place to look.
 
