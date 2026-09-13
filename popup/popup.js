@@ -4,7 +4,7 @@ const DEFAULTS = {
   provider: 'openai', apiKey: '', anthropicKey: '', compatibleKey: '', baseUrl: '',
   enabled: true, cutoff: 40, hideCutoff: 85, showScores: true, blurPending: true,
   scoreModel: 'gpt-5.4-nano', rewriteModel: 'gpt-5.4-mini',
-  rewriteStyle: 'neutral', customStyle: '', spendCap: 10,
+  rewriteStrength: 4, customStyle: '', spendCap: 10,
 };
 
 const PROVIDERS = {
@@ -43,11 +43,12 @@ const PROVIDERS = {
   },
 };
 
-const STYLE_HINTS = {
-  light: 'Swaps only the hostile words',
-  neutral: 'Same point, without the heat',
-  kind: 'Also assumes good faith',
-  custom: 'Your instruction, added to the rewrite prompt',
+const STRENGTH_HINTS = {
+  1: 'Only the single most hostile phrase changes',
+  2: 'Hostile words swapped, sentences kept',
+  3: 'Contempt and insults removed, voice kept',
+  4: 'Rewritten calm and matter-of-fact',
+  5: 'The most charitable version of the same argument',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -58,7 +59,7 @@ const el = {
   keyLabel: $('keyLabel'), apiKey: $('apiKey'), reveal: $('reveal'), keyStatus: $('keyStatus'),
   cutoff: $('cutoff'), cutoffValue: $('cutoffValue'), cutoffHint: $('cutoffHint'),
   hideCutoff: $('hideCutoff'), hideCutoffValue: $('hideCutoffValue'), hideCutoffHint: $('hideCutoffHint'),
-  styleRadios: [...document.querySelectorAll('input[name="rewriteStyle"]')], styleHint: $('styleHint'), customStyle: $('customStyle'),
+  rewriteStrength: $('rewriteStrength'), strengthValue: $('strengthValue'), strengthHint: $('strengthHint'), customToggle: $('customToggle'), customStyle: $('customStyle'),
   showScores: $('showScores'), blurPending: $('blurPending'),
   scoreModel: $('scoreModel'), rewriteModel: $('rewriteModel'),
   scoreModelText: $('scoreModelText'), rewriteModelText: $('rewriteModelText'),
@@ -210,10 +211,14 @@ function renderCutoffs() {
 /* ---------- style ---------- */
 
 function renderStyle() {
-  for (const r of el.styleRadios) r.checked = r.value === current.rewriteStyle;
-  el.styleHint.textContent = STYLE_HINTS[current.rewriteStyle] || '';
-  el.customStyle.hidden = current.rewriteStyle !== 'custom';
+  const v = Math.max(1, Math.min(5, Math.round(Number(current.rewriteStrength) || 4)));
+  el.rewriteStrength.value = v;
+  el.strengthValue.textContent = v;
+  el.strengthHint.textContent = STRENGTH_HINTS[v] || '';
   setVal(el.customStyle, current.customStyle);
+  const open = !!current.customStyle || el.customStyle.dataset.open === '1';
+  el.customStyle.hidden = !open;
+  el.customToggle.hidden = open;
 }
 
 /* ---------- models ---------- */
@@ -398,11 +403,19 @@ async function init() {
     el.cutoffHint.textContent = cutoffHint(current.cutoff);
   });
 
-  for (const r of el.styleRadios) r.addEventListener('change', () => {
-    if (!r.checked || r.value === current.rewriteStyle) return;
-    save({ rewriteStyle: r.value });
+  el.rewriteStrength.addEventListener('input', () => {
+    const v = Number(el.rewriteStrength.value);
+    el.strengthValue.textContent = v;
+    el.strengthHint.textContent = STRENGTH_HINTS[v] || '';
+  });
+  el.rewriteStrength.addEventListener('change', () => {
+    const v = Number(el.rewriteStrength.value);
+    if (v !== current.rewriteStrength) save({ rewriteStrength: v });
+  });
+  el.customToggle.addEventListener('click', () => {
+    el.customStyle.dataset.open = '1';
     renderStyle();
-    if (r.value === 'custom') el.customStyle.focus();
+    el.customStyle.focus();
   });
   el.customStyle.addEventListener('change', () => {
     const v = el.customStyle.value.trim();

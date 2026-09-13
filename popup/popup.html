@@ -55,15 +55,15 @@
     <div class="ticks"><span>hostile</span><span>insults</span><span>abusive</span><span>never</span></div>
     <div id="hideCutoffHint" class="sub"></div>
 
-    <div class="label gap">Rewrite style</div>
-    <div class="seg" role="radiogroup" aria-label="Rewrite style">
-      <label><input type="radio" name="rewriteStyle" value="light"><span>Light touch</span></label>
-      <label><input type="radio" name="rewriteStyle" value="neutral"><span>Neutral</span></label>
-      <label><input type="radio" name="rewriteStyle" value="kind"><span>Kind</span></label>
-      <label><input type="radio" name="rewriteStyle" value="custom"><span>Custom</span></label>
+    <div class="label row gap">
+      <span class="grow">Rewrite strength</span>
+      <span id="strengthValue" class="num">4</span>
     </div>
-    <div id="styleHint" class="sub"></div>
-    <textarea id="customStyle" rows="2" placeholder="e.g. Keep the jokes, drop the insults" aria-label="Custom rewrite instruction" hidden></textarea>
+    <input type="range" id="rewriteStrength" class="plain" min="1" max="5" step="1" aria-label="Rewrite strength">
+    <div class="ticks"><span>touch-up</span><span>light</span><span>moderate</span><span>firm</span><span>full</span></div>
+    <div id="strengthHint" class="sub"></div>
+    <button id="customToggle" class="link small" type="button">Add an instruction</button>
+    <textarea id="customStyle" rows="2" placeholder="e.g. Keep the jokes, drop the insults" aria-label="Extra rewrite instruction" hidden></textarea>
   </section>
 
   <section>

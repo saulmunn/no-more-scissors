@@ -17,6 +17,7 @@
   const SEL_ACTIONS = 'div[role="group"]';
   const SEL_MEDIA = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="card.wrapper"], div[role="link"]';
   const SEL_OURS = '.nms-rewrite, .nms-collapsed, .nms-note';
+  const SEL_SHOW_MORE = '[data-testid="tweet-text-show-more-link"]';
   const MIN_CHARS = 8;
   const BATCH = 8;
   const QUIET_MS = 100;
@@ -215,9 +216,11 @@
       // of misattributing the quoting post's id.
       id: quote ? (NMS.postId(quote) || 'q' + textKey(text)) : NMS.postId(article),
       author: NMS.authorOf(scope),
+      // Long posts arrive cut off (~275 chars, mid-sentence) with X's "Show more" button right after the text.
+      truncated: !!(textDiv.parentElement && textDiv.parentElement.querySelector(`:scope > ${SEL_SHOW_MORE}`)),
       skipped: text.length < MIN_CHARS,
       result: null, retried: false, forced: false, forcedOriginal: false, noteText: '',
-      swapped: false, collapsed: false, showingOriginal: false,
+      swapped: false, collapsed: false, showingOriginal: false, seenOriginal: false,
       badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, toggleWrap: null, toggleLink: null,
       collapseRow: null, noteEl: null, hiddenBlocks: [], blurTimer: 0, pending: false, top: 0,
     };
@@ -319,6 +322,7 @@
     const items = states.map((st) => {
       const it = { id: st.id, text: st.text, lang: st.lang, author: st.author };
       if (st.forced) it.force = true;
+      if (st.truncated) it.truncated = true;
       return it;
     });
     batchLog.push({ gen: g, items: states.map((st) => ({ top: st.top, quoted: st.quoted, forced: st.forced, text: st.text.slice(0, 40) })) });
@@ -435,12 +439,7 @@
     if (on) {
       let fresh = false;
       if (!state.rewriteDiv || !state.rewriteDiv.isConnected) {
-        const div = NMS.el('div', 'nms-rewrite nms-ui');
-        if (state.lang) div.setAttribute('lang', state.lang);
-        const dir = state.textDiv.getAttribute('dir');
-        if (dir) div.setAttribute('dir', dir);
-        NMS.copyTextStyle(state.textDiv, div);
-        state.rewriteDiv = div;
+        state.rewriteDiv = makeRewriteDiv(state.textDiv);
         fresh = true;
       }
       if (!state.toggleWrap || !state.toggleWrap.isConnected) {
@@ -453,10 +452,10 @@
       }
       placeToggle(state);
       if (fresh || state.rewriteText !== result.rewrite) {
-        state.rewriteDiv.replaceChildren(renderDiff(state.text, result.rewrite, state.textDiv));
+        state.rewriteDiv.firstElementChild.replaceChildren(renderDiff(state.text, result.rewrite, state.textDiv));
         state.rewriteText = result.rewrite;
       }
-      if (!state.swapped) state.showingOriginal = !!state.forcedOriginal;
+      if (!state.swapped) { state.showingOriginal = !!state.forcedOriginal; state.seenOriginal = !!state.forcedOriginal; }
       state.swapped = true;
     } else {
       if (state.rewriteDiv) { state.rewriteDiv.remove(); state.rewriteDiv = null; state.rewriteText = null; }
@@ -472,9 +471,27 @@
     if (state.collapsed) { state.textDiv.classList.add('nms-hidden'); return; }
     if (!state.swapped) { state.textDiv.classList.remove('nms-hidden'); return; }
     const orig = !!state.showingOriginal;
+    if (orig) state.seenOriginal = true;
     state.textDiv.classList.toggle('nms-hidden', !orig);
     state.rewriteDiv.classList.toggle('nms-hidden', orig);
+    // Changed phrases are underlined only once the reader has looked at the original and come back.
+    state.rewriteDiv.classList.toggle('nms-diff', !orig && !!state.seenOriginal);
     state.toggleLink.textContent = orig ? 'Show rewrite' : 'Show original';
+  }
+
+  // The rewrite lives in a copy of X's own text element (same tag, classes, lang/dir) with a copy of
+  // its inner text span, so font, size, wrapping and spacing are X's, not ours.
+  function makeRewriteDiv(textDiv) {
+    const div = textDiv.cloneNode(false);
+    div.removeAttribute('data-testid');
+    div.removeAttribute('id');
+    div.classList.remove('nms-unit', 'nms-hidden', 'nms-pending');
+    div.classList.add('nms-rewrite', 'nms-ui');
+    const proto = textDiv.querySelector('span');
+    const inner = document.createElement('span');
+    if (proto) inner.className = proto.className;
+    div.appendChild(inner);
+    return div;
   }
 
   function addNote(state) {

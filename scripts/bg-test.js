@@ -201,23 +201,26 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   A.strictEqual(r.results[0].rewrite, 'CALM: Calm post number 0');
   await chrome.storage.local.set({ cutoff: 40 });
 
-  // ---- rewriteStyle changes regenerate once and cache under the style key ----
-  await chrome.storage.local.set({ rewriteStyle: 'kind' });
+  // ---- rewriteStrength / customStyle changes regenerate once and cache under the style key ----
+  await chrome.storage.local.set({ rewriteStrength: 5 });
   r = await send({ type: 'analyze', items: [items[2]] });
-  A.strictEqual(calls.length, 7); A.match(calls[6].body.messages[0].content, /good faith/);
-  r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 7, 'kind rewrite cached');
+  A.strictEqual(calls.length, 7); A.match(calls[6].body.messages[0].content, /Strength 5 of 5/);
+  r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 7, 'strength-5 rewrite cached');
   const h2 = Object.keys(store).find((k) => k.startsWith('c:') && store[k].w === 'CALM: These people are morons');
-  A.strictEqual(store[h2].wk, 'kind'); A.strictEqual(store[h2].s, 66);
-  await chrome.storage.local.set({ rewriteStyle: 'light' });
-  r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 8); A.match(calls[7].body.messages[0].content, /as few words as possible/);
-  await chrome.storage.local.set({ rewriteStyle: 'custom', customStyle: 'Make it sound like a pirate.' });
+  A.strictEqual(store[h2].wk, 's5'); A.strictEqual(store[h2].s, 66);
+  await chrome.storage.local.set({ rewriteStrength: 1 });
+  r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 8); A.match(calls[7].body.messages[0].content, /Strength 1 of 5/);
+  A.ok(!/Strength 5 of 5/.test(calls[7].body.messages[0].content));
+  await chrome.storage.local.set({ customStyle: 'Make it sound like a pirate.' });
   r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 9);
   A.ok(calls[8].body.messages[0].content.endsWith('Additional instruction from the user:\nMake it sound like a pirate.'));
-  A.ok(store[h2].wk.startsWith('custom:'));
+  A.ok(store[h2].wk.startsWith('s1:'));
   r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 9, 'custom rewrite cached');
-  await chrome.storage.local.set({ rewriteStyle: 'neutral', customStyle: '' });
-  r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 10, 'back to neutral regenerates once');
-  A.strictEqual(store[h2].wk, 'neutral');
+  await chrome.storage.local.set({ rewriteStrength: 4, customStyle: '' });
+  r = await send({ type: 'analyze', items: [items[2]] }); A.strictEqual(calls.length, 10, 'back to the default regenerates once');
+  A.strictEqual(store[h2].wk, 's4');
+  A.match(calls[9].body.messages[0].content, /Strength 4 of 5/);
+  A.ok(!/return it unchanged/.test(calls[9].body.messages[0].content));
 
   // ---- persistence + stats ----
   A.strictEqual(Object.keys(store).filter((k) => k.startsWith('c:')).length, 10);
@@ -525,7 +528,7 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   A.ok(baseSystem.endsWith("using each post's number as its index."), 'constant ends where it always did');
   const hotKey = Object.keys(store).find((k) => k.startsWith('c:') && store[k].w === 'CALM: ' + hotText);
   const calmKey = Object.keys(store).find((k) => k.startsWith('c:') && store[k].s === 5 && store[k].w === undefined);
-  A.ok(hotKey && calmKey, 'both entries cached'); A.strictEqual(store[hotKey].s, 66); A.strictEqual(store[hotKey].wk, 'neutral');
+  A.ok(hotKey && calmKey, 'both entries cached'); A.strictEqual(store[hotKey].s, 66); A.strictEqual(store[hotKey].wk, 's4');
   r = await send({ type: 'getStats' }); A.strictEqual(r.cacheSize, 2);
 
   // ---- setting calibration drops s/r from cached entries (memory + storage) but keeps w ----
@@ -535,7 +538,7 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   ];
   await chrome.storage.local.set({ calibration: cal }); await sleep(5);
   A.deepStrictEqual(Object.keys(store[hotKey]).sort(), ['t', 'w', 'wk'], 's and r dropped, w/wk/t kept');
-  A.strictEqual(store[hotKey].w, 'CALM: ' + hotText); A.strictEqual(store[hotKey].wk, 'neutral'); A.strictEqual(typeof store[hotKey].t, 'number');
+  A.strictEqual(store[hotKey].w, 'CALM: ' + hotText); A.strictEqual(store[hotKey].wk, 's4'); A.strictEqual(typeof store[hotKey].t, 'number');
   A.strictEqual(store[calmKey], undefined, 'entry with no rewrite removed entirely');
   r = await send({ type: 'getStats' }); A.strictEqual(r.cacheSize, 1, 'in-memory cache pruned too');
   A.ok(store['a:alice'], 'author history untouched by calibration');
@@ -666,7 +669,7 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   const rwSystem = calls[b].body.messages[0].content;
   A.ok(rwSystem.includes('Never return the text unchanged'), 'always-change rule present');
   A.ok(!rwSystem.includes('return it unchanged'), 'old return-unchanged rule gone');
-  A.ok(rwSystem.includes('at minimum replace the most hostile phrase'));
+  A.ok(/at minimum replace the most hostile phrase/i.test(rwSystem));
   A.ok(rwSystem.includes('Never longer than the original') && rwSystem.includes('Keep every claim') && rwSystem.includes('Keep @mentions'), 'other rules kept');
   A.ok(calls[b].body.messages[1].content.startsWith('The reader flagged this post (rated 66/100: fake reason). Rewrite it.\n\nPost (language: en):\n' + rwText), 'context line');
   A.ok(!calls[b].body.messages[1].content.includes('identical to the input'), 'no retry line on the first attempt');
@@ -695,6 +698,19 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   A.strictEqual(r.results[0].rewrite, rwText3, 'second identical answer returned as-is');
   r = await send({ type: 'analyze', items: [{ id: 'rw3', text: rwText3, lang: '', author: '', force: false }] }); A.strictEqual(calls.length, b + 2, 'identical rewrite cached, not re-requested');
   await sleep(500); A.strictEqual(store.stats.rewritten, 5, 'each rewritten post counted once (retries do not double count)');
+
+  // ---- truncated posts: the rewrite prompt says to stop where X did ----
+  const truncText = 'These people are morons and here is a long thread about why the';
+  r = await send({ type: 'score', text: truncText }); A.strictEqual(r.score, 66); // score first so analyze below only rewrites
+  A.ok(!/Rewrite only the visible part/.test(calls[calls.length - 1].body.messages[1].content), 'scoring prompt untouched');
+  script.push(rewriteReply('These people are mistaken and here is a long thread about why the…'));
+  const t0 = calls.length;
+  r = await send({ type: 'analyze', items: [{ text: truncText, truncated: true }] });
+  A.strictEqual(calls.length, t0 + 1); A.strictEqual(schemaName(calls[t0]), 'calm_rewrite');
+  A.match(calls[t0].body.messages[1].content, /Rewrite only the visible part/);
+  A.match(calls[t0].body.messages[1].content, /end with an ellipsis/);
+  A.ok(r.results[0].rewrite.endsWith('…'));
+
 
   console.log(`background tests passed (${assertions} assertions, ${calls.length} fake API calls)`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

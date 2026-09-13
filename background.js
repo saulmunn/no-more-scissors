@@ -18,15 +18,14 @@ const DEFAULTS = Object.freeze({
   blurPending: true,
   scoreModel: 'gpt-5.4-nano',
   rewriteModel: 'gpt-5.4-mini',
-  rewriteStyle: 'neutral',   // 'light' | 'neutral' | 'kind' | 'custom'
-  customStyle: '',
+  rewriteStrength: 4,        // 1 touch-up … 5 full rewrite (how far the rewrite goes)
+  customStyle: '',           // extra instruction appended to the rewrite prompt when non-empty
   spendCap: 10,              // USD per calendar month; 0 = no cap
   onboarded: false,
   calibration: [],           // [{ id, text, score }] the user's own ratings of the example posts; [] = not calibrated
 });
 
 const KEY_SETTINGS = ['provider', 'apiKey', 'anthropicKey', 'compatibleKey', 'baseUrl'];
-const STYLES = ['light', 'neutral', 'kind', 'custom'];
 const CALIBRATION_MAX = 24; // calibration entries appended to the score prompt (stored order, first N)
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
@@ -115,22 +114,24 @@ Input format: the user message contains one or more posts, each under a heading 
 
 Reply with JSON only: {"results": [{"index": N, "score": <integer 0–100>, "reason": "<at most 8 plain words describing the tone>"}, ...]} with exactly one entry per post, using each post's number as its index.`;
 
-const REWRITE_SYSTEM = `You rewrite a social media post so it says the same thing without the heat.
+const REWRITE_SYSTEM = `You rewrite a social media post so it makes the same point without the hostility. The reader flagged it with their own threshold, so it needs changing.
 
-Rules:
-- Keep every claim, fact, opinion, and joke. Do not soften the position, add hedges, "balance", or disclaimers. Do not summarize.
-- Remove or replace contempt, insults, sneering, name-calling, rage-bait framing, and dehumanizing language. Keep the underlying criticism.
-- Keep the author's voice: same person (I/we/you), same register, same language. Casual stays casual, lowercase stays lowercase, jokes stay jokes. No corporate or therapist tone.
+Rules that always apply:
+- Keep every claim, fact, opinion, and criticism. Do not soften the position, add hedges, "balance", or disclaimers. Do not summarize or drop content to make it shorter.
+- Keep the author's person (I/we/you) and language. Never add a corporate or therapist tone.
 - Keep @mentions, #hashtags, URLs, numbers, quotations, emoji, and line breaks exactly as written.
-- Same length or shorter. Never longer than the original.
-- Always change something. This post was flagged by the reader's own threshold, so at minimum replace the most hostile phrase, even if you think the post is mild. Never return the text unchanged.
+- Never longer than the original.
+- Always change something. At minimum replace the most hostile phrase, even if you think the post is mild. Never return the text unchanged.
 
 Reply with JSON: {"rewrite": "<the rewritten post>"}`;
 
-const STYLE_PARAGRAPHS = {
-  light: 'Style: change as few words as possible. Replace only the hostile words and phrases; leave the sentence structure, order, and everything else exactly as written.',
-  neutral: '',
-  kind: 'Style: additionally assume good faith in the people mentioned and phrase any disagreement generously, while keeping the position and every claim intact.',
+// How far the rewrite goes (settings.rewriteStrength, 1–5). Appended to REWRITE_SYSTEM.
+const STRENGTH_PARAGRAPHS = {
+  1: 'Strength 1 of 5 (touch-up): change as few words as possible — only the single most hostile word or phrase. Everything else stays verbatim: structure, register, sarcasm, jokes.',
+  2: 'Strength 2 of 5 (light): replace the hostile words and phrases with neutral ones. Keep the sentence structure, the register, lowercase and slang, and any sarcasm that is not aimed at people.',
+  3: 'Strength 3 of 5 (moderate): remove contempt, insults, sneering, name-calling and rage-bait framing wherever they appear, restructuring sentences when needed. Keep the author\'s register: casual stays casual, jokes stay jokes.',
+  4: 'Strength 4 of 5 (firm): rewrite freely into a measured, matter-of-fact register. Strip sarcasm, mockery, dunk framing, loaded labels and rhetorical questions entirely, and state the underlying claims and criticisms plainly. The point should land harder for being said calmly.',
+  5: 'Strength 5 of 5 (full): rewrite as the most charitable, calm version of the same argument — the way a fair-minded person would put it to someone they respect. Remove every trace of hostility, sarcasm and loaded language; assume good faith in the people mentioned; keep every claim and criticism. Name a feeling plainly ("I\'m frustrated that…") rather than performing it.',
 };
 
 // Appended to SCORE_SYSTEM (never inserted into it) when the user has calibrated, so the shared prefix
@@ -221,23 +222,23 @@ function cutoff() { return num(settings.cutoff, DEFAULTS.cutoff); }
 function hideCutoff() { return num(settings.hideCutoff, DEFAULTS.hideCutoff); }
 function spendCap() { return Math.max(0, num(settings.spendCap, DEFAULTS.spendCap)); }
 
-function rewriteStyle() { return STYLES.includes(settings.rewriteStyle) ? settings.rewriteStyle : 'neutral'; }
+function rewriteStrength() {
+  const n = Math.round(num(settings.rewriteStrength, DEFAULTS.rewriteStrength));
+  return Math.max(1, Math.min(5, n));
+}
 function customStyle() { return String(settings.customStyle || '').trim(); }
 
-// Rewrites are cached under a style key so a style change regenerates them once.
+// Rewrites are cached under this key, so a strength or instruction change regenerates them once.
 function styleKey() {
-  const style = rewriteStyle();
-  return style === 'custom' ? 'custom:' + hash(customStyle()) : style;
+  const extra = customStyle();
+  return 's' + rewriteStrength() + (extra ? ':' + hash(extra) : '');
 }
 
 function rewriteSystem() {
-  const style = rewriteStyle();
-  if (style === 'custom') {
-    const extra = customStyle();
-    return extra ? REWRITE_SYSTEM + '\n\nAdditional instruction from the user:\n' + extra : REWRITE_SYSTEM;
-  }
-  const para = STYLE_PARAGRAPHS[style];
-  return para ? REWRITE_SYSTEM + '\n\n' + para : REWRITE_SYSTEM;
+  let out = REWRITE_SYSTEM + '\n\n' + STRENGTH_PARAGRAPHS[rewriteStrength()];
+  const extra = customStyle();
+  if (extra) out += '\n\nAdditional instruction from the user:\n' + extra;
+  return out;
 }
 
 // The user's own ratings, sanitised: non-empty string text, finite numeric score clamped 0–100,
@@ -887,9 +888,12 @@ function normWs(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
 
 // A rewrite model stricter than the scorer can hand the post back untouched, which the content script
 // shows as "no rewrite". Push back once; if it still returns the input, return that (the badge still shows).
-async function rewritePost(text, lang, entry) {
+async function rewritePost(text, lang, entry, truncated) {
   const context = `The reader flagged this post (rated ${entry.s}/100: ${entry.r || 'no reason given'}). Rewrite it.\n\n`;
-  let user = context + describePost(text, lang);
+  const cutoff = truncated
+    ? 'X cut this post off after the last word shown (the reader sees a "Show more" button). Rewrite only the visible part, stop at the same point, and end with an ellipsis (…). Do not invent an ending.\n\n'
+    : '';
+  let user = context + cutoff + describePost(text, lang);
   for (let attempt = 0; ; attempt++) {
     const out = await callModel({
       model: settings.rewriteModel,
@@ -920,6 +924,7 @@ function normalizeItem(raw) {
     lang: cleanLang(it.lang),
     author: String(it.author || ''),
     force: !!it.force,
+    truncated: !!it.truncated,
     h: text ? hash(text) : '',
     valid: !!text.trim(),
   };
@@ -985,7 +990,7 @@ async function analyze(msg) {
         } else {
           const scored = entry;
           entry = await dedupe('w:' + it.h + ':' + wk, async () => {
-            const w = await rewritePost(it.text, it.lang, scored);
+            const w = await rewritePost(it.text, it.lang, scored, it.truncated);
             stats.rewritten += 1;
             saveStats();
             return putEntry(it.h, { w, wk });

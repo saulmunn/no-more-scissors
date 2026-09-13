@@ -16,7 +16,6 @@
   white-space: nowrap;
   user-select: none;
   cursor: default;
-  font-variant-numeric: tabular-nums;
 }
 .nms-compose-badge.nms-off { display: none; }
 
@@ -67,7 +66,6 @@
   vertical-align: middle;
   user-select: none;
   cursor: default;
-  font-variant-numeric: tabular-nums;
 }
 .nms-heat .nms-num { color: var(--nms-heat-primary, currentColor); }
 .nms-heat-meta { color: var(--nms-heat-secondary, currentColor); }

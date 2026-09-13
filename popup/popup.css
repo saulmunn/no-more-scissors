@@ -101,3 +101,6 @@ details summary:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px;
 .err { color: var(--bad); margin-top: 6px; overflow-wrap: anywhere; }
 .saved { opacity: 0; transition: opacity .2s; }
 .saved.show { opacity: 1; }
+
+input[type="range"].plain { background: color-mix(in srgb, var(--fg) 22%, transparent); }
+.link.small { font-size: 12px; padding: 0; margin-top: 4px; }

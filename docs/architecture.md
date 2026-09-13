@@ -37,8 +37,8 @@ const DEFAULTS = {
   blurPending: true,         // blur post text until scored (max ~4 s, then it fades in anyway)
   scoreModel: 'gpt-5.4-nano',
   rewriteModel: 'gpt-5.4-mini',
-  rewriteStyle: 'neutral',   // 'light' | 'neutral' | 'kind' | 'custom'
-  customStyle: '',           // extra instruction when rewriteStyle === 'custom'
+  rewriteStrength: 4,        // 1 touch-up · 2 light · 3 moderate · 4 firm · 5 full: how far the rewrite goes
+  customStyle: '',           // extra instruction appended to the rewrite prompt when non-empty
   spendCap: 10,              // USD per calendar month across all models; 0 = no cap
   onboarded: false,          // onboarding page sets true
   calibration: [],           // [{ id, text, score }] — the user's own ratings of the built-in example posts
@@ -65,9 +65,10 @@ All responses are objects with `ok`. When nothing can proceed, the top-level res
 ### `analyze` — score (and rewrite) posts, batched
 
 ```js
-{ type: 'analyze', items: [{ id, text, lang, author, force }] }
+{ type: 'analyze', items: [{ id, text, lang, author, force, truncated }] }
 // id: post id string if known ('' otherwise); author: handle without '@' ('' if unknown);
-// force: true asks for a rewrite even when the post is above hideCutoff (used by "Show anyway").
+// force: true asks for a rewrite even when the post is above hideCutoff (used by "Show anyway");
+// truncated: true when X's "Show more" button follows the text (long post cut off on the timeline).
 → { ok: true, results: [ per item:
      { ok: true, score, reason, flagged, hidden, rewrite }   // rewrite is a string or null
    | { ok: false, error } ] }
@@ -133,7 +134,7 @@ Unknown models are estimated at 1/5 and `costEstimated` is true. Match model ids
 
 - Calibration: when `settings.calibration` is non-empty, the background appends a block to the END of the shared score system prompt (so the shared prefix still caches): `## This user's calibration` + one line per rating `- "<text>" → <score>`, telling the model to match this person's scale. Changing `calibration` clears cached scores (rewrites are kept).
 - Score rubric: 0–100 (0–19 neutral/earnest · 20–39 pointed/snarky · 40–59 hostile/contemptuous · 60–79 insults, dehumanising, rage bait · 80–100 slurs/threats/calls for harm). Judge tone and framing, not topic. Strong opinions, criticism, bad news, casual profanity, dark humour, and anger at events are not inflammatory by themselves; contempt for people is. The system prompt carries ≥ 1,024 tokens of calibration examples so provider prompt caching applies (OpenAI: 1,024-token minimum; Anthropic Opus 5: 512; Sonnet 5 / Opus 4.8: 1,024; Haiku 4.5 needs 4,096, so the default Anthropic score model does not get cache hits). Batch format: user message lists posts as `### Post 1`, `### Post 2`, … ; schema `{ results: [{ index, score, reason }] }` with `index` = post number; `reason` ≤ 8 words.
-- Rewrite: keep every claim/opinion/joke, voice, person, register, language, mentions, hashtags, URLs, emoji, line breaks; never longer; return unchanged if already calm. Style presets append a paragraph: **light** = change as few words as possible, only the hostile ones; **neutral** = current behaviour; **kind** = additionally assume good faith and phrase disagreement generously; **custom** = the user's instruction verbatim. Schema `{ rewrite }`.
+- Rewrite: keep every claim/opinion/joke, voice, person, register, language, mentions, hashtags, URLs, emoji, line breaks; never longer; return unchanged if already calm. `rewriteStrength` appends one of five tier paragraphs (1 changes only the most hostile phrase … 5 rewrites as the most charitable calm version); `customStyle`, when non-empty, is appended verbatim under "Additional instruction from the user". Rewrites are cached under `wk = 's<strength>[:<hash of customStyle>]'`. Items with `truncated: true` (X's "Show more" button follows the text; the timeline carries only ~275 characters of a long post) get a note to rewrite only the visible part, stop where X stopped and end with an ellipsis. Schema `{ rewrite }`.
 
 ## Content script contracts
 
@@ -152,6 +153,7 @@ Unknown models are estimated at 1/5 and `costEstimated` is true. Match model ids
 - "Show more" link style (used for "Show anyway" in collapsed posts): X blue `rgb(29,155,240)`, same font as the post text, no underline, cursor pointer. The "Show original" / "Show rewrite" toggle lives in the header right after the badge ("· Show original"), in the secondary colour with underline on hover, so it never sits where X's own "Show more" appears. Rewritten text has no rule or padding; the dotted underlines are the only visual difference.
 - Composer: `[data-testid="tweetTextarea_0"]` (contenteditable, Draft.js; paragraphs are `[data-block="true"]`), Post button `[data-testid="tweetButtonInline"]` or `[data-testid="tweetButton"]`. Toolbar: `[data-testid="toolBar"]` > [nav, flex-row div > flex-column div > the Post button]; the composer badge is inserted before the button's column slot in that flex row. Reply modal: `[role="dialog"]` containing the textarea and the parent post's `tweetText`; Escape does not close it (use its close button). Inline reply (post page): the reply box lives INSIDE the focal post's own `[data-testid="cellInnerDiv"]`. Focus events don't bubble past X's React root — listen for `focusin`/`focusout` in the capture phase and reconcile with `document.activeElement`.
 - Profile page: pathname `/<handle>` (one segment, not `home|explore|notifications|messages|search|settings|compose|i|jobs`), header `[data-testid="UserName"]` (capital N — different from posts); the heat pill goes on the flex-row that holds the `@handle` span (the row that also shows "Follows you").
+- Rewrites are rendered in a `cloneNode(false)` of the post's own `tweetText` element (data-testid stripped) with a span carrying X's inner span classes, so font, size and wrapping are X's. Changed phrases (`.nms-changed`) are underlined only once the reader has viewed the original and come back (`.nms-diff` on the rewrite element). Badges use X's normal numerals, not tabular ones.
 - Themes: never hard-code black/white. Copy colours from X elements (`time` for secondary, `tweetText` for primary) or use `currentColor` + `color-mix`.
 - Never post, like, follow, or otherwise act on X while testing. Close the reply modal with Escape.
 

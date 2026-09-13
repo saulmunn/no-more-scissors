@@ -16,7 +16,6 @@
   flex: none;
   gap: 4px;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
   cursor: default;
   user-select: none;
 }
@@ -24,8 +23,8 @@
 .nms-badge .nms-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .nms-badge.nms-err .nms-num { font-weight: 700; opacity: .8; }
 
-/* Rewritten text sits where the original was and looks like any other post text; the header
-   toggle and the dotted underlines are the only tells. Fades in rather than hard-swapping. */
+/* Rewritten text lives in a clone of X's own text element, so it looks like any other post; the
+   header toggle is the only tell until the reader compares. Fades in rather than hard-swapping. */
 @keyframes nms-fade { from { opacity: 0; } to { opacity: 1; } }
 .nms-rewrite {
   white-space: pre-wrap;
@@ -34,13 +33,14 @@
 }
 .nms-rewrite a { color: rgb(29, 155, 240); text-decoration: none; }
 .nms-rewrite a:hover { text-decoration: underline; }
-.nms-changed {
+/* Changed phrases are marked only after the reader has looked at the original and come back. */
+.nms-rewrite.nms-diff .nms-changed {
   text-decoration: underline dotted;
   text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-.nms-changed a { text-decoration: inherit; text-decoration-color: rgb(29, 155, 240); }
+.nms-rewrite.nms-diff .nms-changed a { text-decoration: inherit; text-decoration-color: rgb(29, 155, 240); }
 
 /* Text links in the style of X's "Show more". */
 .nms-link {
