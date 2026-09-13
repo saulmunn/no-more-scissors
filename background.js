@@ -119,8 +119,8 @@ const REWRITE_SYSTEM = `You rewrite social media posts so they are bland, neutra
 The goal is the meaning without the heat: a reader should come away knowing the same things the author asserted, criticised or wanted, but nothing about the post should raise anyone's pulse. Exact wording does not matter; intent and meaning do. How much of the original survives is set by the strength level at the end of this prompt, and the level wins over any instinct to preserve the original's flavour.
 
 Always:
-- Keep every claim, fact, criticism and request: what is asserted, about whom, and why. Do not add disclaimers, both-sides balance, or remarks about tone.
-- Keep the author's person (I/we/you) and language.
+- Write AS the author, never about the author or the post. The rewrite is the post itself, restated: the same assertions made directly, in the same person (I/we/you) and the same language. Never "this post says", "the author argues", "they claim", or any third-person summary of the post.
+- Keep every claim, fact, criticism and request, with the same stance and direction: who is criticised, what is asserted, what is demanded. Do not weaken, hedge or qualify claims; do not add disclaimers, both-sides balance, or remarks about tone.
 - Keep @mentions, #hashtags, URLs, numbers, quotations and line breaks exactly as written.
 - Never longer than the original. Never return the text unchanged.
 
@@ -131,8 +131,8 @@ const STRENGTH_PARAGRAPHS = {
   1: 'Strength 1 of 5 (touch-up): change only the hostile words and phrases. Everything else stays as written: structure, register, jokes, emoji.',
   2: 'Strength 2 of 5 (light): replace hostile words and phrases and tone down exaggeration. Keep the sentence structure, the register, slang and emoji.',
   3: 'Strength 3 of 5 (moderate): remove contempt, sarcasm, mockery and rage-bait framing, restructuring sentences as needed. Keep the author\'s casual register and harmless emoji.',
-  4: 'Strength 4 of 5 (firm): restate the post in plain, matter-of-fact prose. No sarcasm, mockery, rhetorical questions, hyperbole, absolutes ("every single", "literally"), capitals for emphasis or exclamation marks; loaded labels become neutral descriptions of what someone did or said; drop emoji that carry mockery or heat. The register may become formal.',
-  5: 'Strength 5 of 5 (full): rewrite from scratch as the blandest accurate statement of what the author meant, in the flat register of a neutral news brief. Nothing colourful survives: no sarcasm, mockery, hyperbole, loaded labels, wordplay, exclamation marks, rhetorical questions, performed emotion or emoji. Turn accusations into sober, specific claims about actions or outcomes; qualify overstatements ("every one of them" → "many of them"); state feelings plainly ("I\'m frustrated that…") rather than performing them. If the post is mostly attitude with a thin claim underneath, state the claim in one or two plain sentences and drop the rest. The result should be unremarkable.',
+  4: 'Strength 4 of 5 (firm): restate the post in plain, matter-of-fact prose, still in the author\'s own voice. No sarcasm, mockery, rhetorical questions, intensifiers ("literally", "absolutely"), capitals for emphasis or exclamation marks; loaded labels become neutral descriptions of what someone did or said; drop emoji that carry mockery or heat. The register may become formal.',
+  5: 'Strength 5 of 5 (full): rewrite from scratch as the blandest accurate statement of what the author meant, in a flat, plain register, written by the author in the first person. Nothing colourful survives: no sarcasm, mockery, hyperbole, loaded labels, wordplay, exclamation marks, rhetorical questions, performed emotion or emoji. Accusations become sober, specific claims about actions or outcomes, still asserted by the author; feelings are stated plainly ("I\'m frustrated that…") rather than performed. If the post is mostly attitude with a thin claim underneath, state the claim in one or two plain sentences and drop the rest. The result should be unremarkable, and it should still be unmistakably the author saying it.',
 };
 
 // Appended to SCORE_SYSTEM (never inserted into it) when the user has calibrated, so the shared prefix
