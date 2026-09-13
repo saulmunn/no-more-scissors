@@ -24,14 +24,12 @@
 .nms-badge .nms-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .nms-badge.nms-err .nms-num { font-weight: 700; opacity: .8; }
 
-/* Rewritten text sits where the original was, with a quiet rule so it's clear these aren't the
-   author's exact words. Fades in rather than hard-swapping. */
+/* Rewritten text sits where the original was and looks like any other post text; the header
+   toggle and the dotted underlines are the only tells. Fades in rather than hard-swapping. */
 @keyframes nms-fade { from { opacity: 0; } to { opacity: 1; } }
 .nms-rewrite {
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  padding-left: 10px;
-  border-left: 2px solid color-mix(in srgb, currentColor 16%, transparent);
   animation: nms-fade .25s ease-out;
 }
 .nms-rewrite a { color: rgb(29, 155, 240); text-decoration: none; }
@@ -53,7 +51,12 @@
 }
 .nms-link:hover { text-decoration: underline; }
 .nms-link.nms-busy { opacity: .5; pointer-events: none; }
-.nms-toggle-row { margin-top: 2px; }
+/* Header toggle: "· Show original" right after the score, in the same muted metadata style;
+   underlines on hover like X's own header links. */
+.nms-toggle { display: inline-flex; align-items: center; flex: none; white-space: nowrap; user-select: none; }
+.nms-toggle .nms-sep { padding: 0 4px; }
+.nms-link.nms-head-link { color: inherit; }
+.nms-link.nms-head-link:hover { text-decoration: underline; }
 
 /* Collapsed unit: "Hidden · 92 · reason  Show anyway" in X's secondary colour. */
 .nms-collapsed {

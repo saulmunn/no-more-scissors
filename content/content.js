@@ -16,7 +16,7 @@
   const SEL_HEADER = '[data-testid="User-Name"]';
   const SEL_ACTIONS = 'div[role="group"]';
   const SEL_MEDIA = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="card.wrapper"], div[role="link"]';
-  const SEL_OURS = '.nms-rewrite, .nms-toggle-row, .nms-collapsed, .nms-note';
+  const SEL_OURS = '.nms-rewrite, .nms-collapsed, .nms-note';
   const MIN_CHARS = 8;
   const BATCH = 8;
   const QUIET_MS = 100;
@@ -189,7 +189,7 @@
   // Keep our siblings in a fixed order right after the text element.
   function place(state) {
     let prev = state.textDiv;
-    for (const el of [state.rewriteDiv, state.toggleRow, state.collapseRow, state.noteEl]) {
+    for (const el of [state.rewriteDiv, state.collapseRow, state.noteEl]) {
       if (!el) continue;
       if (el.parentNode !== prev.parentNode || el.previousElementSibling !== prev) prev.insertAdjacentElement('afterend', el);
       prev = el;
@@ -218,7 +218,7 @@
       skipped: text.length < MIN_CHARS,
       result: null, retried: false, forced: false, forcedOriginal: false, noteText: '',
       swapped: false, collapsed: false, showingOriginal: false,
-      badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, toggleRow: null, toggleLink: null,
+      badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, toggleWrap: null, toggleLink: null,
       collapseRow: null, noteEl: null, hiddenBlocks: [], blurTimer: 0, pending: false, top: 0,
     };
     units.set(textDiv, state);
@@ -246,7 +246,7 @@
 
   function teardownUnit(state) {
     unblur(state);
-    for (const el of [state.rewriteDiv, state.toggleRow, state.collapseRow, state.noteEl, state.badgeEl]) if (el) el.remove();
+    for (const el of [state.rewriteDiv, state.toggleWrap, state.collapseRow, state.noteEl, state.badgeEl]) if (el) el.remove();
     for (const b of state.hiddenBlocks) b.classList.remove('nms-hidden');
     state.hiddenBlocks = [];
     state.textDiv.classList.remove('nms-hidden', 'nms-pending', 'nms-unit');
@@ -383,6 +383,19 @@
     if (state.badgeEl) state.badgeEl.replaceWith(el); else h.slot.appendChild(el);
     state.badgeEl = el;
     state.badgeKey = el.title;
+    placeToggle(state);
+  }
+
+  // The "Show original" toggle sits in the header right after the score: "@handle · 4h · ●42 · Show original".
+  function placeToggle(state) {
+    const wrap = state.toggleWrap;
+    if (!wrap) return;
+    const h = headerSlot(state);
+    if (!h) return;
+    const anchor = state.badgeEl && state.badgeEl.isConnected ? state.badgeEl : null;
+    if (anchor) { if (wrap.previousElementSibling !== anchor || wrap.parentNode !== anchor.parentNode) anchor.insertAdjacentElement('afterend', wrap); }
+    else if (wrap.parentNode !== h.slot) h.slot.appendChild(wrap);
+    NMS.copyTextStyle(h.time || h.slot, wrap, ['font-family', 'font-size', 'line-height', 'font-weight', 'color']);
   }
 
   function setCollapsed(state, on, result) {
@@ -430,13 +443,15 @@
         state.rewriteDiv = div;
         fresh = true;
       }
-      if (!state.toggleRow || !state.toggleRow.isConnected) {
-        const row = NMS.el('div', 'nms-toggle-row nms-ui');
-        NMS.copyTextStyle(state.textDiv, row, ['font-family', 'font-size', 'line-height']);
+      if (!state.toggleWrap || !state.toggleWrap.isConnected) {
+        const wrap = NMS.el('span', 'nms-toggle nms-ui');
+        wrap.appendChild(NMS.el('span', 'nms-sep', '·'));
         state.toggleLink = makeLink('Show original', () => { state.showingOriginal = !state.showingOriginal; applyVisibility(state); });
-        row.appendChild(state.toggleLink);
-        state.toggleRow = row;
+        state.toggleLink.classList.add('nms-head-link');
+        wrap.appendChild(state.toggleLink);
+        state.toggleWrap = wrap;
       }
+      placeToggle(state);
       if (fresh || state.rewriteText !== result.rewrite) {
         state.rewriteDiv.replaceChildren(renderDiff(state.text, result.rewrite, state.textDiv));
         state.rewriteText = result.rewrite;
@@ -445,7 +460,7 @@
       state.swapped = true;
     } else {
       if (state.rewriteDiv) { state.rewriteDiv.remove(); state.rewriteDiv = null; state.rewriteText = null; }
-      if (state.toggleRow) { state.toggleRow.remove(); state.toggleRow = null; state.toggleLink = null; }
+      if (state.toggleWrap) { state.toggleWrap.remove(); state.toggleWrap = null; state.toggleLink = null; }
       state.swapped = false;
       state.showingOriginal = false;
     }

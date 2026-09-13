@@ -9,7 +9,7 @@ _The name is a nod to Scott Alexander's ["Sort by Controversial"](https://slates
 ## What it looks like
 
 - Every post gets a small badge in its header, right after the time: a coloured dot (green → red) and the score, in X's own muted text style. Hover for the one-line reason.
-- Posts at or above your **rewrite threshold** show the calmer wording with a thin rule down the left side. Phrases that changed are dotted-underlined, and **Show original** brings the exact wording back.
+- Posts at or above your **rewrite threshold** show the calmer wording in place of the original, looking like any other post. Phrases that changed are dotted-underlined, and **Show original** next to the score in the header brings the exact wording back.
 - Posts at or above the **collapse threshold** (85 by default) fold into a single line, `Hidden · 92 · dehumanizing language`, with **Show anyway**.
 - Quoted posts are scored and rewritten inside the quote.
 - The compose box shows a live score of what you're about to post. When you reply to a rewritten post, the original wording is shown so you're answering what was actually said.
