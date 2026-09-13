@@ -56,7 +56,8 @@
     if (!href) {
       if (/^@\w{1,15}$/.test(core)) href = `${location.origin}/${core.slice(1)}`;
       else if (/^#[\p{L}\p{N}_]+$/u.test(core)) href = `${location.origin}/hashtag/${encodeURIComponent(core.slice(1))}`;
-      else if (/^https?:\/\/\S+$/i.test(core)) href = core;
+      // Bare URLs that the original post did not carry are left as plain text: a rewrite must never
+      // introduce a clickable link the author never posted.
     }
     if (!href) return document.createTextNode(part);
     const frag = document.createDocumentFragment();

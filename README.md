@@ -126,6 +126,10 @@ The monthly spend cap (default $10) is an estimate computed from token counts an
 - Nothing is posted, liked, or changed on X. The rewrite is a local overlay; the original post is still in the page and one click brings it back.
 - Nothing is sent to the extension's author. The full policy is in [PRIVACY.md](PRIVACY.md).
 
+## Prompt injection
+
+Posts are untrusted input to the model. The extension strips invisible characters, frames every post as data between markers, tells the model that instructions inside a post are just text, and discards any rewrite that grows past the original or introduces a link the author never posted. Links in a rewrite are only ever the original post's own.
+
 ## Known limitations
 
 - Posts are scored after they appear, so without the blur option you may glimpse the original for a moment.
