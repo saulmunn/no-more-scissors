@@ -35,34 +35,6 @@
   // ---------- text helpers ----------
 
   const normText = (s) => String(s).replace(/\s+/g, ' ').trim().toLowerCase();
-  const LEAD = /^[\s"'“”‘’«»(\[{<.,!?;:…—–\-*_~`]+/u;
-  const TRAIL = /[\s"'“”‘’«»)\]}>.,!?;:…—–\-*_~`]+$/u;
-  const normTok = (t) => t.toLowerCase().replace(LEAD, '').replace(TRAIL, '');
-
-  // Which rewrite tokens are new or changed: everything not on a longest common subsequence of the
-  // normalised tokens. Tokens are whitespace-split; comparison is case-insensitive and ignores
-  // leading/trailing punctuation so "hey," still matches "Hey".
-  function changedMask(origTokens, newTokens) {
-    const a = origTokens.map(normTok), b = newTokens.map(normTok);
-    const n = a.length, m = b.length;
-    const mask = new Array(m).fill(true);
-    if (!n || !m) return mask;
-    if (n * m > 400000) { const set = new Set(a); return b.map((t) => !set.has(t)); }
-    const w = m + 1;
-    const L = new Uint16Array((n + 1) * w);
-    for (let i = n - 1; i >= 0; i--) {
-      for (let j = m - 1; j >= 0; j--) {
-        L[i * w + j] = a[i] === b[j] ? L[(i + 1) * w + j + 1] + 1 : Math.max(L[(i + 1) * w + j], L[i * w + j + 1]);
-      }
-    }
-    let i = 0, j = 0;
-    while (i < n && j < m) {
-      if (a[i] === b[j]) { mask[j] = false; i++; j++; }
-      else if (L[(i + 1) * w + j] >= L[i * w + j + 1]) i++;
-      else j++;
-    }
-    return mask;
-  }
 
   // Anchors of the original post, keyed by their visible text, so the rewrite can reuse them.
   function anchorMap(originalDiv) {
@@ -100,32 +72,14 @@
     return frag;
   }
 
-  // The rewrite as DOM: links restored per token, runs of changed tokens (including the whitespace
-  // between them) wrapped in <span class="nms-changed">.
-  function renderDiff(original, rewrite, originalDiv) {
+  // The rewrite as DOM: whitespace kept, every token run through linkToken so mentions, hashtags
+  // and URLs are links again.
+  function renderRewrite(rewrite, originalDiv) {
     const hrefs = anchorMap(originalDiv);
-    const seq = String(rewrite).match(/\s+|\S+/g) || [];
-    const words = seq.filter((s) => !/^\s+$/.test(s));
-    const mask = changedMask(original.match(/\S+/g) || [], words);
     const frag = document.createDocumentFragment();
-    let span = null, pendingWs = '', k = 0;
-    for (const s of seq) {
-      if (/^\s+$/.test(s)) {
-        if (span) pendingWs += s; else frag.appendChild(document.createTextNode(s));
-        continue;
-      }
-      const changed = mask[k++];
-      if (changed) {
-        if (!span) { span = NMS.el('span', 'nms-changed'); frag.appendChild(span); }
-        if (pendingWs) { span.appendChild(document.createTextNode(pendingWs)); pendingWs = ''; }
-        span.appendChild(linkToken(s, hrefs));
-      } else {
-        span = null;
-        if (pendingWs) { frag.appendChild(document.createTextNode(pendingWs)); pendingWs = ''; }
-        frag.appendChild(linkToken(s, hrefs));
-      }
+    for (const s of String(rewrite).match(/\s+|\S+/g) || []) {
+      frag.appendChild(/^\s+$/.test(s) ? document.createTextNode(s) : linkToken(s, hrefs));
     }
-    if (pendingWs) frag.appendChild(document.createTextNode(pendingWs));
     return frag;
   }
 
@@ -137,17 +91,28 @@
     return q && q !== article && article.contains(q) ? q : null;
   }
 
-  // Where the header badge goes: the element holding the <time> link inside User-Name, so it reads
-  // "@handle · 4h · ●42". `time` is the style source (X's secondary colour and size).
+  // Where the header badge goes and which X element to copy its look from. On the timeline the
+  // header holds "@handle · 4h" with a <time>: the badge joins that row. On a post page the focal
+  // post has no <time> in its name block (the date sits under the text), so the badge follows the
+  // "@handle" span in its own row instead. Wrapper divs there carry no font (computed: Times), so
+  // the style source must be the span, never the row.
   function headerSlot(state) {
     const header = state.quoted
       ? state.scope.querySelector(SEL_HEADER)
       : [...state.article.querySelectorAll(SEL_HEADER)].find((h) => !quoteOf(h, state.article));
     if (!header) return null;
     const time = header.querySelector('time');
-    if (!time) return { slot: header.lastElementChild || header, time: null };
-    const link = time.closest('a') || time;
-    return { slot: link.parentElement || header, time };
+    if (time) {
+      const link = time.closest('a') || time;
+      return { slot: link.parentElement || header, style: time };
+    }
+    const handle = [...header.querySelectorAll('span')].find((el) => /^@\w{1,15}$/.test(el.textContent.trim()));
+    if (handle) {
+      let row = handle;
+      while (row.parentElement && row.parentElement !== header) row = row.parentElement;
+      return { slot: row, style: handle };
+    }
+    return { slot: header.lastElementChild || header, style: header.querySelector('span') };
   }
 
   // Media / quote / card wrappers between the text and the action bar of the post's own column.
@@ -182,7 +147,7 @@
 
   function secondaryStyle(state, el, props = ['font-family', 'font-size', 'line-height', 'color']) {
     const h = headerSlot(state);
-    if (h && h.time) { NMS.copyTextStyle(h.time, el, props); return; }
+    if (h && h.style) { NMS.copyTextStyle(h.style, el, props); return; }
     NMS.copyTextStyle(state.textDiv, el, props);
     el.style.opacity = '.6';
   }
@@ -220,7 +185,7 @@
       truncated: !!(textDiv.parentElement && textDiv.parentElement.querySelector(`:scope > ${SEL_SHOW_MORE}`)),
       skipped: text.length < MIN_CHARS,
       result: null, retried: false, forced: false, forcedOriginal: false, noteText: '',
-      swapped: false, collapsed: false, showingOriginal: false, seenOriginal: false,
+      swapped: false, collapsed: false, showingOriginal: false,
       badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, toggleWrap: null, toggleLink: null,
       collapseRow: null, noteEl: null, hiddenBlocks: [], blurTimer: 0, pending: false, top: 0,
     };
@@ -382,7 +347,7 @@
     if (state.badgeEl && state.badgeKey === el.title) return;
     const h = headerSlot(state);
     if (!h) return;
-    NMS.copyTextStyle(h.time || h.slot, el, ['font-family', 'font-size', 'line-height', 'font-weight', 'color']);
+    NMS.copyTextStyle(h.style || h.slot, el, ['font-family', 'font-size', 'line-height', 'font-weight', 'color']);
     for (const old of h.slot.querySelectorAll(':scope > .nms-badge')) if (old !== state.badgeEl) old.remove();
     if (state.badgeEl) state.badgeEl.replaceWith(el); else h.slot.appendChild(el);
     state.badgeEl = el;
@@ -399,7 +364,7 @@
     const anchor = state.badgeEl && state.badgeEl.isConnected ? state.badgeEl : null;
     if (anchor) { if (wrap.previousElementSibling !== anchor || wrap.parentNode !== anchor.parentNode) anchor.insertAdjacentElement('afterend', wrap); }
     else if (wrap.parentNode !== h.slot) h.slot.appendChild(wrap);
-    NMS.copyTextStyle(h.time || h.slot, wrap, ['font-family', 'font-size', 'line-height', 'font-weight', 'color']);
+    NMS.copyTextStyle(h.style || h.slot, wrap, ['font-family', 'font-size', 'line-height', 'font-weight', 'color']);
   }
 
   function setCollapsed(state, on, result) {
@@ -452,10 +417,10 @@
       }
       placeToggle(state);
       if (fresh || state.rewriteText !== result.rewrite) {
-        state.rewriteDiv.firstElementChild.replaceChildren(renderDiff(state.text, result.rewrite, state.textDiv));
+        state.rewriteDiv.firstElementChild.replaceChildren(renderRewrite(result.rewrite, state.textDiv));
         state.rewriteText = result.rewrite;
       }
-      if (!state.swapped) { state.showingOriginal = !!state.forcedOriginal; state.seenOriginal = !!state.forcedOriginal; }
+      if (!state.swapped) state.showingOriginal = !!state.forcedOriginal;
       state.swapped = true;
     } else {
       if (state.rewriteDiv) { state.rewriteDiv.remove(); state.rewriteDiv = null; state.rewriteText = null; }
@@ -471,11 +436,8 @@
     if (state.collapsed) { state.textDiv.classList.add('nms-hidden'); return; }
     if (!state.swapped) { state.textDiv.classList.remove('nms-hidden'); return; }
     const orig = !!state.showingOriginal;
-    if (orig) state.seenOriginal = true;
     state.textDiv.classList.toggle('nms-hidden', !orig);
     state.rewriteDiv.classList.toggle('nms-hidden', orig);
-    // Changed phrases are underlined only once the reader has looked at the original and come back.
-    state.rewriteDiv.classList.toggle('nms-diff', !orig && !!state.seenOriginal);
     state.toggleLink.textContent = orig ? 'Show rewrite' : 'Show original';
   }
 

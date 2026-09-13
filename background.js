@@ -18,7 +18,7 @@ const DEFAULTS = Object.freeze({
   blurPending: true,
   scoreModel: 'gpt-5.4-nano',
   rewriteModel: 'gpt-5.4-mini',
-  rewriteStrength: 4,        // 1 touch-up … 5 full rewrite (how far the rewrite goes)
+  rewriteStrength: 5,        // 1 touch-up … 5 bland restatement (how far the rewrite goes)
   customStyle: '',           // extra instruction appended to the rewrite prompt when non-empty
   spendCap: 10,              // USD per calendar month; 0 = no cap
   onboarded: false,
@@ -114,24 +114,25 @@ Input format: the user message contains one or more posts, each under a heading 
 
 Reply with JSON only: {"results": [{"index": N, "score": <integer 0–100>, "reason": "<at most 8 plain words describing the tone>"}, ...]} with exactly one entry per post, using each post's number as its index.`;
 
-const REWRITE_SYSTEM = `You rewrite a social media post so it makes the same point without the hostility. The reader flagged it with their own threshold, so it needs changing.
+const REWRITE_SYSTEM = `You rewrite social media posts so they are bland, neutral and unremarkable while preserving exactly what the author meant.
 
-Rules that always apply:
-- Keep every claim, fact, opinion, and criticism. Do not soften the position, add hedges, "balance", or disclaimers. Do not summarize or drop content to make it shorter.
-- Keep the author's person (I/we/you) and language. Never add a corporate or therapist tone.
-- Keep @mentions, #hashtags, URLs, numbers, quotations, emoji, and line breaks exactly as written.
-- Never longer than the original.
-- Always change something. At minimum replace the most hostile phrase, even if you think the post is mild. Never return the text unchanged.
+The goal is the meaning without the heat: a reader should come away knowing the same things the author asserted, criticised or wanted, but nothing about the post should raise anyone's pulse. Exact wording does not matter; intent and meaning do. How much of the original survives is set by the strength level at the end of this prompt, and the level wins over any instinct to preserve the original's flavour.
+
+Always:
+- Keep every claim, fact, criticism and request: what is asserted, about whom, and why. Do not add disclaimers, both-sides balance, or remarks about tone.
+- Keep the author's person (I/we/you) and language.
+- Keep @mentions, #hashtags, URLs, numbers, quotations and line breaks exactly as written.
+- Never longer than the original. Never return the text unchanged.
 
 Reply with JSON: {"rewrite": "<the rewritten post>"}`;
 
 // How far the rewrite goes (settings.rewriteStrength, 1–5). Appended to REWRITE_SYSTEM.
 const STRENGTH_PARAGRAPHS = {
-  1: 'Strength 1 of 5 (touch-up): change as few words as possible — only the single most hostile word or phrase. Everything else stays verbatim: structure, register, sarcasm, jokes.',
-  2: 'Strength 2 of 5 (light): replace the hostile words and phrases with neutral ones. Keep the sentence structure, the register, lowercase and slang, and any sarcasm that is not aimed at people.',
-  3: 'Strength 3 of 5 (moderate): remove contempt, insults, sneering, name-calling and rage-bait framing wherever they appear, restructuring sentences when needed. Keep the author\'s register: casual stays casual, jokes stay jokes.',
-  4: 'Strength 4 of 5 (firm): rewrite freely into a measured, matter-of-fact register. Strip sarcasm, mockery, dunk framing, loaded labels and rhetorical questions entirely, and state the underlying claims and criticisms plainly. The point should land harder for being said calmly.',
-  5: 'Strength 5 of 5 (full): rewrite as the most charitable, calm version of the same argument — the way a fair-minded person would put it to someone they respect. Remove every trace of hostility, sarcasm and loaded language; assume good faith in the people mentioned; keep every claim and criticism. Name a feeling plainly ("I\'m frustrated that…") rather than performing it.',
+  1: 'Strength 1 of 5 (touch-up): change only the hostile words and phrases. Everything else stays as written: structure, register, jokes, emoji.',
+  2: 'Strength 2 of 5 (light): replace hostile words and phrases and tone down exaggeration. Keep the sentence structure, the register, slang and emoji.',
+  3: 'Strength 3 of 5 (moderate): remove contempt, sarcasm, mockery and rage-bait framing, restructuring sentences as needed. Keep the author\'s casual register and harmless emoji.',
+  4: 'Strength 4 of 5 (firm): restate the post in plain, matter-of-fact prose. No sarcasm, mockery, rhetorical questions, hyperbole, absolutes ("every single", "literally"), capitals for emphasis or exclamation marks; loaded labels become neutral descriptions of what someone did or said; drop emoji that carry mockery or heat. The register may become formal.',
+  5: 'Strength 5 of 5 (full): rewrite from scratch as the blandest accurate statement of what the author meant, in the flat register of a neutral news brief. Nothing colourful survives: no sarcasm, mockery, hyperbole, loaded labels, wordplay, exclamation marks, rhetorical questions, performed emotion or emoji. Turn accusations into sober, specific claims about actions or outcomes; qualify overstatements ("every one of them" → "many of them"); state feelings plainly ("I\'m frustrated that…") rather than performing them. If the post is mostly attitude with a thin claim underneath, state the claim in one or two plain sentences and drop the rest. The result should be unremarkable.',
 };
 
 // Appended to SCORE_SYSTEM (never inserted into it) when the user has calibrated, so the shared prefix

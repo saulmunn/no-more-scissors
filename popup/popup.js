@@ -4,7 +4,7 @@ const DEFAULTS = {
   provider: 'openai', apiKey: '', anthropicKey: '', compatibleKey: '', baseUrl: '',
   enabled: true, cutoff: 40, hideCutoff: 85, showScores: true, blurPending: true,
   scoreModel: 'gpt-5.4-nano', rewriteModel: 'gpt-5.4-mini',
-  rewriteStrength: 4, customStyle: '', spendCap: 10,
+  rewriteStrength: 5, customStyle: '', spendCap: 10,
 };
 
 const PROVIDERS = {
@@ -44,11 +44,11 @@ const PROVIDERS = {
 };
 
 const STRENGTH_HINTS = {
-  1: 'Only the single most hostile phrase changes',
-  2: 'Hostile words swapped, sentences kept',
-  3: 'Contempt and insults removed, voice kept',
-  4: 'Rewritten calm and matter-of-fact',
-  5: 'The most charitable version of the same argument',
+  1: 'Only the hostile words change',
+  2: 'Hostile words and exaggeration toned down',
+  3: 'Contempt and sarcasm removed, voice kept',
+  4: 'Restated as plain, matter-of-fact prose',
+  5: 'Restated from scratch, bland and neutral',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -211,7 +211,7 @@ function renderCutoffs() {
 /* ---------- style ---------- */
 
 function renderStyle() {
-  const v = Math.max(1, Math.min(5, Math.round(Number(current.rewriteStrength) || 4)));
+  const v = Math.max(1, Math.min(5, Math.round(Number(current.rewriteStrength) || 5)));
   el.rewriteStrength.value = v;
   el.strengthValue.textContent = v;
   el.strengthHint.textContent = STRENGTH_HINTS[v] || '';

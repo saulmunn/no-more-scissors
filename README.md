@@ -9,7 +9,7 @@ _The name is a nod to Scott Alexander's ["Sort by Controversial"](https://slates
 ## What it looks like
 
 - Every post gets a small badge in its header, right after the time: a coloured dot (green → red) and the score, in X's own muted text style. Hover for the one-line reason.
-- Posts at or above your **rewrite threshold** show the calmer wording in place of the original, looking like any other post. **Show original** next to the score in the header brings the exact wording back, and once you've compared, the phrases that changed are dotted-underlined in the rewrite.
+- Posts at or above your **rewrite threshold** show the calmer wording in place of the original, looking like any other post. **Show original** next to the score in the header brings the exact wording back.
 - Posts at or above the **collapse threshold** (85 by default) fold into a single line, `Hidden · 92 · dehumanizing language`, with **Show anyway**.
 - Quoted posts are scored and rewritten inside the quote.
 - The compose box shows a live score of what you're about to post. When you reply to a rewritten post, the original wording is shown so you're answering what was actually said.
@@ -72,7 +72,7 @@ Everything lives in the toolbar popup (pin the icon from the puzzle-piece menu).
 | **Provider and key** | OpenAI, Anthropic, or a custom endpoint, each with its own key. Custom endpoints also take a base URL (no trailing `/chat/completions`). |
 | **Rewrite posts scoring …** | Posts at or above this score get rewritten. 40 is the default (clearly hostile or contemptuous posts). Around 25 also catches snark; 70+ leaves everything but insults and rage bait alone. Changing it re-evaluates posts already on screen. |
 | **Collapse posts scoring …** | Posts at or above this score fold into one line with the score and reason. 85 by default; set it to "never" to rewrite everything instead. |
-| **Rewrite strength** | 1 changes only the single most hostile phrase; 3 removes contempt but keeps the voice; 5 is the most charitable calm version of the same argument. Default 4 (calm and matter-of-fact). An extra instruction can be added underneath. |
+| **Rewrite strength** | How much of the original survives. 1 changes only the hostile words; 3 removes contempt and sarcasm but keeps the voice; 4 restates the post as plain, matter-of-fact prose; 5 (default) rewrites from scratch as a bland, neutral statement of what the author meant. Meaning and intent are always kept; wording is not. An extra instruction can be added underneath. |
 | **Score every post** | Off: badges only appear on rewritten and collapsed posts. |
 | **Blur posts until scored** | Blurs each post's text for the second or so it takes to score it, so you never see the original wording of a post that's about to be rewritten. |
 | **Models** | Every post is scored with the cheap, fast model; only posts above the threshold are rewritten, so the rewrite uses a better one. Defaults: `gpt-5.4-nano` / `gpt-5.4-mini` (OpenAI), `claude-haiku-4-5` / `claude-opus-5` (Anthropic). Any model id can be typed in. |
@@ -102,7 +102,7 @@ The model is asked to rate the tone and framing, not the topic, on this scale:
 
 Posts are sent up to 8 per call, and the scoring prompt carries a long set of calibration examples that the provider caches, so each post adds only a few dozen tokens.
 
-Rewrites are instructed to keep every claim, opinion, and joke, the author's voice and register, all mentions, hashtags, links, and line breaks, and to never be longer than the original. They only remove the contempt. If the model thinks a post is already calm it returns it unchanged, and the extension leaves it alone.
+Rewrites are instructed to keep every claim, criticism and request, the author's person and language, all mentions, hashtags, links and line breaks, and to never be longer than the original. Everything else is up to the strength setting, from swapping the hostile words to a from-scratch neutral restatement.
 
 ## Cost
 
