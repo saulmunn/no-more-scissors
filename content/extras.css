@@ -1,0 +1,75 @@
+/* extras.css — styles for composer.js and profile.js. Everything is `nms-` prefixed and inherits its
+   colours from the X element it sits in (copied at insert time or via currentColor), so it works in
+   X's light, dim and dark themes. `.nms-note` belongs to content.css. */
+
+/* ---------- composer: live score left of the Post button ---------- */
+
+.nms-compose-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  max-width: 240px;
+  margin-right: 12px;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+.nms-compose-badge.nms-off { display: none; }
+
+/* NMS.badge() inherits content.css's .nms-badge; reset the timeline look (pill background, auto margin). */
+.nms-compose-badge .nms-badge,
+.nms-heat .nms-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  opacity: 1;
+  font: inherit;
+  font-weight: 700;
+}
+.nms-compose-badge .nms-dot,
+.nms-heat .nms-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.nms-compose-badge .nms-sep,
+.nms-heat .nms-sep { display: none; }
+
+.nms-compose-reason {
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+/* ---------- profile: author heat pill next to the @handle ---------- */
+
+.nms-heat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin-left: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+.nms-heat .nms-num { color: var(--nms-heat-primary, currentColor); }
+.nms-heat-meta { color: var(--nms-heat-secondary, currentColor); }
+.nms-heat.nms-heat-empty { opacity: .7; }
+.nms-heat.nms-heat-off { display: none; }

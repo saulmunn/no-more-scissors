@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set up No More Scissors</title>
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+  <main>
+    <header>
+      <img src="../icons/icon128.png" width="48" height="48" alt="">
+      <div class="grow">
+        <h1>No More Scissors</h1>
+        <p class="lede">Scores every post on your X timeline for how hostile its wording is and quietly rewrites the ones above your threshold so they say the same thing without the heat. One click shows the original. It runs on your own API key, and nothing is posted or changed on X.</p>
+      </div>
+    </header>
+
+    <section class="step" id="key">
+      <div class="step-head"><span class="n">1</span><h2>Choose a provider and paste a key</h2></div>
+
+      <div class="seg" role="radiogroup" aria-label="Provider">
+        <button type="button" class="seg-btn" role="radio" aria-checked="true" data-provider="openai">OpenAI</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-provider="anthropic">Anthropic</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-provider="compatible">Custom endpoint</button>
+      </div>
+
+      <div id="baseUrlField" class="field" hidden>
+        <label class="label" for="baseUrl">Base URL</label>
+        <input type="url" id="baseUrl" placeholder="http://localhost:11434/v1" autocomplete="off" spellcheck="false">
+        <div class="sub">Any OpenAI-compatible server, without the trailing <code>/chat/completions</code>. Your browser will ask to allow the extension to reach that address.</div>
+        <div class="row">
+          <div id="originStatus" class="sub status grow"></div>
+          <button id="allowOrigin" class="btn small" type="button" hidden>Allow access</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="apiKey" id="keyLabel">OpenAI API key</label>
+        <div class="row">
+          <input type="password" id="apiKey" class="grow" placeholder="sk-…" autocomplete="off" spellcheck="false">
+          <button id="reveal" class="btn icon" type="button" title="Show key" aria-label="Show key">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div id="keyStatus" class="sub status"></div>
+      </div>
+
+      <div id="modelField" class="field" hidden>
+        <label class="label" for="customModel">Model</label>
+        <input type="text" id="customModel" placeholder="e.g. llama3.1" autocomplete="off" spellcheck="false">
+        <div class="sub">Used for both scoring and rewriting. The popup lets you pick a different model for each.</div>
+      </div>
+
+      <p class="sub note">
+        <span id="keyNote">The key is checked immediately, stored only on this computer, and sent only to the provider you chose.</span>
+        <a id="getKey" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get an OpenAI key</a>
+        <span id="customNote" hidden>For a free, private setup run <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>, pull a model, and use <code>http://localhost:11434/v1</code> with the key left empty.</span>
+      </p>
+    </section>
+
+    <section class="step" id="calibrate">
+      <div class="step-head"><span class="n">2</span><h2>Calibrate the scale <span class="opt">(optional, one minute)</span></h2></div>
+      <p>Rate these eight posts. Your ratings become examples in your own scoring prompt, so the numbers match how you read things.</p>
+      <div class="row cal-meta">
+        <span id="calProgress" class="sub grow" aria-live="polite">0 of 8 rated</span>
+        <a id="calSkip" class="sub" href="#threshold">Skip for now</a>
+      </div>
+
+      <div id="calPosts" class="cal-list"></div>
+
+      <div id="calCheck" class="cal-check" hidden>
+        <div class="label">Check the scale</div>
+        <div class="row">
+          <button id="calCheckBtn" class="btn" type="button">Score 8 other posts with the model</button>
+          <span id="calCheckStatus" class="sub status grow" aria-live="polite"></span>
+        </div>
+        <div id="calCheckResults" class="cal-results" hidden></div>
+        <p id="calCheckNote" class="sub note" hidden>These eight were not part of your calibration, so this is what the model does with your scale on new posts.</p>
+      </div>
+    </section>
+
+    <section class="step" id="threshold">
+      <div class="step-head"><span class="n">3</span><h2>Pick how much to rewrite</h2></div>
+      <div class="label row">
+        <span class="grow">Rewrite posts scoring</span>
+        <span id="cutoffValue" class="num">40</span>
+      </div>
+      <input type="range" id="cutoff" min="0" max="100" step="1" aria-label="Rewrite threshold">
+      <div class="ticks"><span>calm</span><span>snarky</span><span>hostile</span><span>abusive</span></div>
+      <div id="cutoffHint" class="sub"></div>
+      <div id="cutoffBands" class="sub"></div>
+      <p class="sub note">Posts far above this line (85 and up by default) are collapsed to a single line instead of rewritten. You can move that line, or turn it off, in the popup.</p>
+    </section>
+
+    <section class="step" id="open">
+      <div class="step-head"><span class="n">4</span><h2>Open X</h2></div>
+      <p>Everything else, from the collapse threshold, models and rewrite style to the monthly spend cap and usage stats, lives in the toolbar popup. Pin the icon from the puzzle-piece menu so it's one click away.</p>
+
+      <div id="firefoxBlock" class="callout" hidden>
+        <div class="grow">
+          <b>Firefox:</b> allow the extension to read x.com and reach your provider's API. Firefox doesn't grant these at install.
+          <div id="hostStatus" class="sub status"></div>
+        </div>
+        <button id="grantHosts" class="btn" type="button">Allow access</button>
+      </div>
+
+      <div class="row actions">
+        <a id="openX" class="btn primary" href="https://x.com/home" target="_blank" rel="noopener">Open X</a>
+        <span class="sub">You can reopen this page from <b>Setup guide</b> in the popup.</span>
+      </div>
+    </section>
+
+    <footer>
+      <a href="https://slatestarcodex.com/2018/10/30/sort-by-controversial/" target="_blank" rel="noopener">Why “scissors”?</a>
+      <span id="saved" class="saved" aria-live="polite"></span>
+    </footer>
+  </main>
+
+  <script src="calibration-posts.js"></script>
+  <script src="onboarding.js"></script>
+</body>
+</html>

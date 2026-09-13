@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>No More Scissors</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon32.png" width="18" height="18" alt="">
+    <h1>No More Scissors</h1>
+    <input type="checkbox" id="enabled" class="switch" title="Turn the extension on or off" aria-label="Enabled">
+  </header>
+
+  <div id="capBanner" class="banner" role="alert" hidden>Paused: monthly cap reached — raise the cap to continue</div>
+
+  <section id="providerSection">
+    <div class="seg" role="radiogroup" aria-label="Provider">
+      <label><input type="radio" name="provider" value="openai"><span>OpenAI</span></label>
+      <label><input type="radio" name="provider" value="anthropic"><span>Anthropic</span></label>
+      <label><input type="radio" name="provider" value="compatible"><span>Custom</span></label>
+    </div>
+
+    <div id="baseUrlField" hidden>
+      <label class="label" for="baseUrl">Base URL</label>
+      <input type="url" id="baseUrl" placeholder="http://localhost:11434/v1" autocomplete="off" spellcheck="false">
+      <div class="sub">Any OpenAI-compatible endpoint: Ollama, OpenRouter, Groq…</div>
+      <div id="baseUrlWarn" class="sub warn" hidden></div>
+    </div>
+
+    <label class="label" for="apiKey" id="keyLabel">OpenAI API key</label>
+    <div class="row">
+      <input type="password" id="apiKey" class="grow" placeholder="sk-…" autocomplete="off" spellcheck="false">
+      <button id="reveal" class="btn icon" type="button" title="Show key" aria-label="Show key">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div id="keyStatus" class="sub status"></div>
+  </section>
+
+  <section>
+    <div class="label row">
+      <label class="grow" for="cutoff">Rewrite posts scoring</label>
+      <span id="cutoffValue" class="num">40</span>
+    </div>
+    <input type="range" id="cutoff" min="0" max="100" step="1">
+    <div class="ticks"><span>calm</span><span>snarky</span><span>hostile</span><span>abusive</span></div>
+    <div id="cutoffHint" class="sub"></div>
+
+    <div class="label row gap">
+      <label class="grow" for="hideCutoff">Collapse posts scoring</label>
+      <span id="hideCutoffValue" class="num">85</span>
+    </div>
+    <input type="range" id="hideCutoff" class="hi" min="50" max="101" step="1">
+    <div class="ticks"><span>hostile</span><span>insults</span><span>abusive</span><span>never</span></div>
+    <div id="hideCutoffHint" class="sub"></div>
+
+    <div class="label gap">Rewrite style</div>
+    <div class="seg" role="radiogroup" aria-label="Rewrite style">
+      <label><input type="radio" name="rewriteStyle" value="light"><span>Light touch</span></label>
+      <label><input type="radio" name="rewriteStyle" value="neutral"><span>Neutral</span></label>
+      <label><input type="radio" name="rewriteStyle" value="kind"><span>Kind</span></label>
+      <label><input type="radio" name="rewriteStyle" value="custom"><span>Custom</span></label>
+    </div>
+    <div id="styleHint" class="sub"></div>
+    <textarea id="customStyle" rows="2" placeholder="e.g. Keep the jokes, drop the insults" aria-label="Custom rewrite instruction" hidden></textarea>
+  </section>
+
+  <section>
+    <label class="row opt">
+      <div class="grow">
+        <div>Score every post</div>
+        <div class="sub">Off: only rewritten posts get a badge</div>
+      </div>
+      <input type="checkbox" id="showScores" class="switch">
+    </label>
+    <label class="row opt">
+      <div class="grow">
+        <div>Blur posts until scored</div>
+        <div class="sub">No flash of the original wording</div>
+      </div>
+      <input type="checkbox" id="blurPending" class="switch">
+    </label>
+  </section>
+
+  <section>
+    <details id="models">
+      <summary class="label">Models</summary>
+      <div class="field">
+        <label for="scoreModel" id="scoreModelLabel">Score with<small>every post</small></label>
+        <select id="scoreModel"></select>
+        <input type="text" id="scoreModelText" placeholder="model id" spellcheck="false" hidden>
+      </div>
+      <div class="field">
+        <label for="rewriteModel" id="rewriteModelLabel">Rewrite with<small>flagged only</small></label>
+        <select id="rewriteModel"></select>
+        <input type="text" id="rewriteModelText" placeholder="model id" spellcheck="false" hidden>
+      </div>
+      <div class="field" id="customField" hidden>
+        <label for="customModel">Custom</label>
+        <input type="text" id="customModel" placeholder="model id" spellcheck="false">
+      </div>
+    </details>
+  </section>
+
+  <section class="stats">
+    <div class="row">
+      <label class="row cap grow" for="spendCap">
+        <span>Monthly cap</span>
+        <span class="money">$<input type="number" id="spendCap" min="0" step="1" inputmode="numeric"></span>
+        <span id="capNote" class="sub"></span>
+      </label>
+      <div id="monthLine"><b id="monthCost">…</b><span>this month</span></div>
+    </div>
+    <div class="row">
+      <div class="grow"><div id="statsLine">…</div><div id="costLine" class="sub"></div></div>
+      <button id="clearCache" class="btn small" type="button" title="Forget cached scores and rewrites">Clear cache</button>
+    </div>
+    <div id="lastError" class="sub err" hidden></div>
+  </section>
+
+  <footer>
+    <span class="links">
+      <a href="https://slatestarcodex.com/2018/10/30/sort-by-controversial/" target="_blank" rel="noopener">Why “scissors”?</a>
+      <span aria-hidden="true">·</span>
+      <button id="calibrate" class="link" type="button" title="Rate eight example posts so scores match how you read things">Calibrate</button>
+      <span aria-hidden="true">·</span>
+      <button id="setupGuide" class="link" type="button">Setup guide</button>
+    </span>
+    <span id="saved" class="saved" aria-live="polite"></span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

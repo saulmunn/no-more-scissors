@@ -1,0 +1,68 @@
+/* No More Scissors — timeline core styling. Colours are copied from X's own elements at runtime
+   (secondary text from <time>, primary from tweetText) or derived from currentColor, so everything
+   works in X's light, dim and dark themes. */
+
+.nms-hidden { display: none !important; }
+
+/* Blur while a unit waits for its score; removing the class animates the un-blur. */
+.nms-unit { transition: filter .35s ease; }
+.nms-unit.nms-pending { filter: blur(5px); }
+
+/* Header badge: "@handle · 4h · ●42", rendered like X's own metadata. Font and colour are copied
+   from the <time> element by content.js; nothing here adds a background. */
+.nms-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+  user-select: none;
+}
+.nms-badge .nms-sep { padding: 0 4px; }
+.nms-badge .nms-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.nms-badge.nms-err .nms-num { font-weight: 700; opacity: .8; }
+
+/* Rewritten text sits where the original was, with a quiet rule so it's clear these aren't the
+   author's exact words. Fades in rather than hard-swapping. */
+@keyframes nms-fade { from { opacity: 0; } to { opacity: 1; } }
+.nms-rewrite {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  padding-left: 10px;
+  border-left: 2px solid color-mix(in srgb, currentColor 16%, transparent);
+  animation: nms-fade .25s ease-out;
+}
+.nms-rewrite a { color: rgb(29, 155, 240); text-decoration: none; }
+.nms-rewrite a:hover { text-decoration: underline; }
+.nms-changed {
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.nms-changed a { text-decoration: inherit; text-decoration-color: rgb(29, 155, 240); }
+
+/* Text links in the style of X's "Show more". */
+.nms-link {
+  color: rgb(29, 155, 240);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+.nms-link:hover { text-decoration: underline; }
+.nms-link.nms-busy { opacity: .5; pointer-events: none; }
+.nms-toggle-row { margin-top: 2px; }
+
+/* Collapsed unit: "Hidden · 92 · reason  Show anyway" in X's secondary colour. */
+.nms-collapsed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+  animation: nms-fade .25s ease-out;
+}
+
+/* Small secondary line under a unit forced back to its original wording (composer). */
+.nms-note { margin-top: 4px; font-size: 13px; line-height: 16px; }

@@ -1,22 +1,72 @@
 {
   "manifest_version": 3,
   "name": "No More Scissors",
-  "version": "1.0",
-  "description": "Rephrases unnecessarily controversial, polarizing, or negatively-worded tweets while maintaining their core message",
-  "permissions": ["storage", "scripting", "activeTab"],
-  "host_permissions": [
-    "https://twitter.com/*",
-    "https://x.com/*",
-    "https://api.openai.com/*"
+  "version": "2.1.0",
+  "description": "Scores every post on your X timeline for inflammatory wording and calmly rewords the ones above your threshold.",
+  "permissions": [
+    "storage"
   ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
+  },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup/popup.html",
+    "default_title": "No More Scissors",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
   "content_scripts": [
     {
-      "matches": ["https://twitter.com/*", "https://x.com/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"]
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content/common.js",
+        "content/content.js",
+        "content/composer.js",
+        "content/profile.js"
+      ],
+      "css": [
+        "content/content.css",
+        "content/extras.css"
+      ],
+      "run_at": "document_idle"
     }
-  ]
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "no-more-scissors@saulmunn",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": [
+          "websiteContent",
+          "personalCommunications"
+        ]
+      }
+    }
+  }
 }
