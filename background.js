@@ -393,6 +393,20 @@ function freshStats() {
 
 let stats = freshStats();
 let keyInvalid = false; // the last API error was a rejected key → "!" badge until the key settings change
+let accountBlock = null; // { message, until } after a no-credits error: no API calls for a minute
+const ACCOUNT_BLOCK_MS = 60 * 1000;
+
+// Why nothing can be sent right now (a rejected key until the settings change, or an account that
+// is out of credits for a minute), or null. Saves hammering the API with requests that will fail.
+function blockedMessage() {
+  if (keyInvalid) return 'API key rejected. Check it in the popup.';
+  if (accountBlock) {
+    if (Date.now() < accountBlock.until) return accountBlock.message;
+    accountBlock = null;
+    updateGlobalBadge();
+  }
+  return null;
+}
 
 const statsReady = chrome.storage.local.get('stats').then(({ stats: s }) => {
   if (s && typeof s === 'object') stats = { ...freshStats(), ...s };
@@ -443,6 +457,10 @@ function recordError(message) {
   stats.lastError = String(message).slice(0, 300);
   stats.lastErrorAt = Date.now();
   if (isKeyError(message)) keyInvalid = true;
+  if (/no credits left/i.test(message)) {
+    accountBlock = { message: String(message), until: Date.now() + ACCOUNT_BLOCK_MS };
+    setTimeout(updateGlobalBadge, ACCOUNT_BLOCK_MS + 50);
+  }
   saveStats();
   updateGlobalBadge();
 }
@@ -492,6 +510,7 @@ function act(method, args) {
 function globalState() {
   if (!hasKey()) return { text: '!', color: BADGE_RED, title: `${TITLE} — no API key set. Click to add one.` };
   if (keyInvalid) return { text: '!', color: BADGE_RED, title: `${TITLE} — the API key was rejected. Click to fix it.` };
+  if (accountBlock && Date.now() < accountBlock.until) return { text: '!', color: BADGE_RED, title: `${TITLE} — ${accountBlock.message}` };
   if (capReached()) return { text: '$', color: BADGE_AMBER, title: `${TITLE} — monthly spend cap reached. Click to raise it.` };
   return null;
 }
@@ -548,7 +567,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     settings[key] = changes[key].newValue ?? DEFAULTS[key];
     if (KEY_SETTINGS.includes(key)) keyChanged = true;
   }
-  if (keyChanged) keyInvalid = false;
+  if (keyChanged) { keyInvalid = false; accountBlock = null; }
   if ('baseUrl' in changes) compatFormat = 'json_schema';
   // Only an effective change (the prompt the model would see) invalidates scores; a no-op rewrite of the same list doesn't.
   if (scoreSystemBefore !== null && scoreSystem() !== scoreSystemBefore) ready.then(dropCachedScores).catch(() => {});
@@ -702,7 +721,9 @@ async function callChat(p, { model, system, user, schemaName, schema, maxTokens 
     if (res.status === 404 || code === 'model_not_found') {
       throw fatal(compatible ? `Model "${model}" not found (or wrong base URL)` : `Model "${model}" not found`);
     }
-    if (res.status === 429 && code === 'insufficient_quota') throw fatal(`${label} account has no credits left`);
+    if ((res.status === 429 && (code === 'insufficient_quota' || /credit|quota|billing/i.test(message))) || res.status === 402) {
+      throw fatal(`${label} account has no credits left`);
+    }
     if (res.status === 429 || res.status >= 500) {
       if (++attempt < MAX_ATTEMPTS) { await sleep(backoffMs(attempt - 1, res.headers.get('retry-after'))); continue; }
     }
@@ -929,6 +950,8 @@ async function analyze(msg) {
   if (!Array.isArray(msg.items)) return { ok: false, error: 'items must be an array' };
   if (!settings.enabled) return { ok: false, error: 'disabled' };
   if (!hasKey()) return { ok: false, error: 'no-key' };
+  const blocked = blockedMessage();
+  if (blocked) return { ok: false, error: blocked };
 
   const wk = styleKey();
   const items = msg.items.map(normalizeItem);
@@ -989,6 +1012,8 @@ async function scoreOnly(text) {
   await ready;
   if (!settings.enabled) return { ok: false, error: 'disabled' };
   if (!hasKey()) return { ok: false, error: 'no-key' };
+  const blocked = blockedMessage();
+  if (blocked) return { ok: false, error: blocked };
   if (typeof text !== 'string' || !text.trim()) return { ok: false, error: 'empty' };
   const it = normalizeItem({ text });
   let entry = cache.get(it.h);
@@ -1013,6 +1038,8 @@ async function scoreTexts(texts) {
   if (!Array.isArray(texts)) return { ok: false, error: 'texts must be an array' };
   if (!settings.enabled) return { ok: false, error: 'disabled' };
   if (!hasKey()) return { ok: false, error: 'no-key' };
+  const blocked = blockedMessage();
+  if (blocked) return { ok: false, error: blocked };
 
   const items = texts.map((text) => normalizeItem({ text }));
   const fromCache = (it) => {

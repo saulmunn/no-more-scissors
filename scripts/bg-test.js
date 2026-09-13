@@ -268,6 +268,17 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   r = await send({ type: 'analyze', items: [{ text: 'Post number four' }] });
   A.strictEqual(r.ok, true); A.strictEqual(r.results[0].ok, false); A.match(r.results[0].error, /credits/); A.strictEqual(calls.length, b + 3, 'no retry on quota');
   await sleep(500); A.match(store.stats.lastError, /credits/);
+  // Out of credits: no API calls for a minute, top-level error, "!" badge; a key change lifts it.
+  b = calls.length;
+  r = await send({ type: 'analyze', items: [{ text: 'Post while out of credits' }] });
+  A.strictEqual(r.ok, false); A.match(r.error, /credits/); A.strictEqual(calls.length, b, 'blocked: no fetch while out of credits');
+  A.ok(badgeHas('setBadgeText', { text: '!', tabId: undefined }), 'no-credits badge');
+  await chrome.storage.local.set({ apiKey: 'sk-test-a' }); await sleep(5);
+  script.push(() => ({ status: 429, json: { error: { message: 'You have no credits remaining. Add credits to continue.', code: 'rate_limit_exceeded' } } }));
+  b = calls.length;
+  r = await send({ type: 'analyze', items: [{ text: 'Credits message without the quota code' }] });
+  A.strictEqual(calls.length, b + 1, 'no retry on a no-credits 429 without the quota code'); A.match(r.results[0].error, /credits/);
+  await chrome.storage.local.set({ apiKey: 'sk-test-b' }); await sleep(5);
   script.push(() => ({ status: 500, json: {}, headers: { 'retry-after': '0.01' } })); script.push(() => ({ status: 503, json: {}, headers: { 'retry-after': '0.01' } }));
   b = calls.length; r = await send({ type: 'analyze', items: [{ text: 'Flaky server post' }] });
   A.strictEqual(r.results[0].ok, true); A.strictEqual(calls.length, b + 3, 'two 5xx then success');
@@ -439,6 +450,9 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   script.push(() => ({ status: 401, json: { error: { type: 'authentication_error', message: 'invalid x-api-key' } } }));
   r = await send({ type: 'analyze', items: [{ text: 'Bad anthropic key post' }] });
   A.strictEqual(r.results[0].error, 'Invalid Anthropic API key'); A.ok(badgeHas('setBadgeText', { text: '!', tabId: undefined }));
+  b = calls.length; r = await send({ type: 'analyze', items: [{ text: 'Post after a rejected anthropic key' }] });
+  A.strictEqual(r.ok, false); A.match(r.error, /rejected/); A.strictEqual(calls.length, b, 'rejected key: no fetch until the key changes');
+  await chrome.storage.local.set({ anthropicKey: 'sk-ant-b' }); await sleep(5);
   r = await send({ type: 'getStats' }); A.strictEqual(r.costEstimated, false);
   await chrome.storage.local.set({ scoreModel: 'claude-haiku-4-5-20251001' });
   await send({ type: 'analyze', items: [{ text: 'Dated snapshot post' }] });

@@ -60,7 +60,7 @@ Other storage keys (background-owned): `c:<hash>` cache entries `{s, r, w, wk, t
 
 ## Messages to the background (`chrome.runtime.sendMessage`)
 
-All responses are objects with `ok`. When nothing can proceed, the top-level response is `{ ok: false, error }` with `error` one of `'no-key'`, `'cap'` (monthly spend cap reached), `'disabled'`, or a human-readable message.
+All responses are objects with `ok`. When nothing can proceed, the top-level response is `{ ok: false, error }` with `error` one of `'no-key'`, `'cap'` (monthly spend cap reached), `'disabled'`, or a human-readable message. After a rejected key (until the credentials change) or a no-credits error (for 60 seconds) the background answers with that message immediately, without calling the API, and the toolbar badge shows `!`.
 
 ### `analyze` — score (and rewrite) posts, batched
 
