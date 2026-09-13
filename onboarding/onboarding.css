@@ -88,11 +88,18 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid #8a
 .cal-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .cal-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 10px; background: var(--bg); }
 .cal-text { margin: 0 0 10px; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
-.cal-seg .seg-btn { padding: 5px 4px; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; white-space: nowrap; }
-.cal-seg .seg-btn:focus-visible { outline: 2px solid #8ab4f8; outline-offset: -1px; z-index: 1; }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex: none; }
-.seg-btn .dot { opacity: .85; }
-.seg-btn[aria-checked="true"] .dot { opacity: 1; box-shadow: 0 0 0 1.5px var(--accent-fg); }
+.cal-row { display: flex; align-items: center; gap: 12px; }
+.cal-row input[type="range"] { flex: 1; margin: 0; }
+.cal-card[data-rated="false"] input[type="range"] { opacity: .45; }
+.cal-card[data-rated="false"] input[type="range"]:hover { opacity: .8; }
+.cal-val { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 48px; font-variant-numeric: tabular-nums; }
+.cal-val .dot { width: 9px; height: 9px; }
+.cal-val b { font-size: 15px; }
+.cal-val.unrated { color: var(--muted); }
+.cal-val.unrated b { font-weight: 400; }
+.cal-clear { appearance: none; border: 0; background: none; padding: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.cal-clear:hover { color: var(--fg); text-decoration: underline; }
 .cal-rubric { min-height: 16px; margin-top: 6px; font-size: 12px; color: var(--muted); }
 
 .cal-check { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
@@ -104,7 +111,6 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid #8a
 .cal-score { display: flex; align-items: center; gap: 6px; font-size: 13px; min-height: 18px; }
 .cal-score .dot { width: 9px; height: 9px; }
 .cal-score b { font-variant-numeric: tabular-nums; }
-.cal-score .band { font-weight: 500; }
 .cal-score .reason { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 .cal-score.muted { color: var(--muted); }
 .btn.busy { color: var(--muted); cursor: progress; }
@@ -124,5 +130,4 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid #8a
   body { padding: 0; }
   main { border: 0; border-radius: 0; }
   .callout, .actions { flex-direction: column; align-items: flex-start; }
-  .cal-seg .seg-btn { padding: 5px 2px; font-size: 11px; gap: 4px; }
 }

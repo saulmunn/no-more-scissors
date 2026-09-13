@@ -60,7 +60,7 @@ You can reopen the page any time from **Setup guide** in the popup.
 
 ## Calibrate the scale
 
-The setup page has an optional one-minute step: rate eight example posts as Fine, Snarky, Hostile, Cruel, or Abusive. Your ratings are added to your own scoring prompt, so the numbers match how you read things rather than a generic rubric. The threshold slider then tells you which of your ratings would be rewritten, and once a key is in place you can score eight other posts with the model to see the scale in action. Reach it any time from **Calibrate** in the popup footer; changing your ratings clears cached scores so posts are re-scored on the new scale.
+The setup page has an optional one-minute step: score eight example posts from 0 to 100. Your ratings are added to your own scoring prompt, so the numbers match how you read things rather than a generic rubric. The threshold slider then tells you how many of your rated posts would be rewritten, and once a key is in place you can score eight other posts with the model to see the scale in action. Reach it any time from **Calibrate** in the popup footer; changing your ratings clears cached scores so posts are re-scored on the new scale.
 
 ## Settings
 

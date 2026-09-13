@@ -42,7 +42,7 @@ const DEFAULTS = {
   spendCap: 10,              // USD per calendar month across all models; 0 = no cap
   onboarded: false,          // onboarding page sets true
   calibration: [],           // [{ id, text, score }] — the user's own ratings of the built-in example posts
-                             // (onboarding/calibration-posts.js; score = band value 10/30/50/70/90). Empty = not calibrated.
+                             // (onboarding/calibration-posts.js; score 0–100 in steps of 5). Empty = not calibrated.
 };
 ```
 
@@ -131,7 +131,7 @@ Unknown models are estimated at 1/5 and `costEstimated` is true. Match model ids
 
 ## Prompts (background)
 
-- Calibration: when `settings.calibration` is non-empty, the background appends a block to the END of the shared score system prompt (so the shared prefix still caches): `## This user's calibration` + one line per rating `- "<text>" → <score>`, telling the model to match this person's scale. Changing `calibration` clears cached scores (rewrites are kept). Bands: fine 10 · snarky 30 · hostile 50 · cruel 70 · abusive 90.
+- Calibration: when `settings.calibration` is non-empty, the background appends a block to the END of the shared score system prompt (so the shared prefix still caches): `## This user's calibration` + one line per rating `- "<text>" → <score>`, telling the model to match this person's scale. Changing `calibration` clears cached scores (rewrites are kept).
 - Score rubric: 0–100 (0–19 neutral/earnest · 20–39 pointed/snarky · 40–59 hostile/contemptuous · 60–79 insults, dehumanising, rage bait · 80–100 slurs/threats/calls for harm). Judge tone and framing, not topic. Strong opinions, criticism, bad news, casual profanity, dark humour, and anger at events are not inflammatory by themselves; contempt for people is. The system prompt carries ≥ 1,024 tokens of calibration examples so provider prompt caching applies (OpenAI: 1,024-token minimum; Anthropic Opus 5: 512; Sonnet 5 / Opus 4.8: 1,024; Haiku 4.5 needs 4,096, so the default Anthropic score model does not get cache hits). Batch format: user message lists posts as `### Post 1`, `### Post 2`, … ; schema `{ results: [{ index, score, reason }] }` with `index` = post number; `reason` ≤ 8 words.
 - Rewrite: keep every claim/opinion/joke, voice, person, register, language, mentions, hashtags, URLs, emoji, line breaks; never longer; return unchanged if already calm. Style presets append a paragraph: **light** = change as few words as possible, only the hostile ones; **neutral** = current behaviour; **kind** = additionally assume good faith and phrase disagreement generously; **custom** = the user's instruction verbatim. Schema `{ rewrite }`.
 

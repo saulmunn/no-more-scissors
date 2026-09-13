@@ -30,9 +30,12 @@ const DEFAULTS = {
 // Firefox treats manifest host_permissions as optional and doesn't grant them at install.
 const SITE_ORIGINS = ['https://x.com/*', 'https://twitter.com/*', 'https://api.openai.com/*', 'https://api.anthropic.com/*'];
 
-// Example posts and bands (onboarding/calibration-posts.js).
-const CAL = window.NMS_CALIBRATION || { bands: [], posts: [], check: [] };
-const BANDS = CAL.bands;
+// Example posts (onboarding/calibration-posts.js). Ratings are 0–100 and snap to every 5.
+const CAL = window.NMS_CALIBRATION || { posts: [], check: [] };
+const STEP = 5;
+const snap = (v) => Math.max(0, Math.min(100, Math.round(Number(v) / STEP) * STEP));
+// post id → the user's score, for the posts they have rated.
+const picks = new Map();
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -83,20 +86,6 @@ function scoreColor(score) {
   return `hsl(${hue.toFixed(0)} 72% 44%)`;
 }
 
-// The highest band whose range starts at or below the score: 0–19 Fine, 20–39 Snarky, … 80+ Abusive.
-function bandFor(score) {
-  let band = BANDS[0];
-  for (const b of BANDS) if (b.score - 10 <= score) band = b;
-  return band;
-}
-
-// Nearest band to a stored score (stored scores are band values, but be forgiving).
-function bandByScore(score) {
-  let best = null;
-  for (const b of BANDS) if (!best || Math.abs(b.score - score) < Math.abs(best.score - score)) best = b;
-  return best;
-}
-
 function cutoffHint(v) {
   if (v <= 15) return 'Rewrites almost everything with any edge to it';
   if (v <= 35) return 'Rewrites snark and sarcasm, leaves earnest opinions alone';
@@ -106,19 +95,19 @@ function cutoffHint(v) {
   return 'Rewrites nothing; scores only';
 }
 
-// "Rewrites posts you'd rate Hostile, Cruel or Abusive": a band is in when its score >= the slider.
-function cutoffBands(v) {
-  const names = BANDS.filter((b) => b.score >= v).map((b) => b.label);
-  if (!names.length) return 'Rewrites nothing you rated';
-  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}` : names[0];
-  return `Rewrites posts you'd rate ${list}`;
+// "Rewrites 3 of the 5 posts you rated": where the threshold lands on the user's own ratings.
+function cutoffRated(v) {
+  const rated = [...picks.values()];
+  if (!rated.length) return '';
+  const n = rated.filter((score) => score >= v).length;
+  return `Rewrites ${n} of the ${rated.length} post${rated.length === 1 ? '' : 's'} you rated`;
 }
 
 function setCutoffUI(v) {
   el.cutoff.value = v;
   el.cutoffValue.textContent = v;
   el.cutoffHint.textContent = cutoffHint(v);
-  el.cutoffBands.textContent = cutoffBands(v);
+  el.cutoffBands.textContent = cutoffRated(v);
 }
 
 // ---- Step 1: provider and key ----
@@ -211,28 +200,20 @@ async function commitBaseUrl() {
 
 // ---- Step 2: calibration ----
 
-// post id → band key for the posts the user has rated.
-const picks = new Map();
-
 function loadPicks() {
   picks.clear();
   const arr = Array.isArray(current.calibration) ? current.calibration : [];
   for (const it of arr) {
     if (!it || typeof it.id !== 'string' || !CAL.posts.some((p) => p.id === it.id)) continue;
-    const b = bandByScore(Number(it.score));
-    if (b) picks.set(it.id, b.key);
+    const score = Number(it.score);
+    if (Number.isFinite(score)) picks.set(it.id, snap(score));
   }
 }
 
-// The stored shape: graded posts in post order, { id, text, score } with score = the band's value.
+// The stored shape: rated posts in post order, { id, text, score }.
 function calibrationArray() {
   const out = [];
-  for (const p of CAL.posts) {
-    const key = picks.get(p.id);
-    if (!key) continue;
-    const b = BANDS.find((x) => x.key === key);
-    if (b) out.push({ id: p.id, text: p.text, score: b.score });
-  }
+  for (const p of CAL.posts) if (picks.has(p.id)) out.push({ id: p.id, text: p.text, score: picks.get(p.id) });
   return out;
 }
 
@@ -247,65 +228,60 @@ function renderCalibration() {
     const card = mk('div', 'cal-card');
     card.dataset.id = post.id;
     card.appendChild(mk('p', 'cal-text', post.text));
-    const seg = mk('div', 'seg cal-seg');
-    seg.setAttribute('role', 'radiogroup');
-    seg.setAttribute('aria-label', `Your rating for post ${i + 1} of ${CAL.posts.length}`);
-    for (const b of BANDS) {
-      const btn = mk('button', 'seg-btn');
-      btn.type = 'button';
-      btn.setAttribute('role', 'radio');
-      btn.setAttribute('aria-checked', 'false');
-      btn.dataset.band = b.key;
-      btn.title = b.hint;
-      btn.tabIndex = -1;
-      const dot = mk('span', 'dot');
-      dot.style.background = scoreColor(b.score);
-      dot.setAttribute('aria-hidden', 'true');
-      btn.append(dot, document.createTextNode(b.label));
-      // Clicking the chosen band again un-grades the post.
-      btn.addEventListener('click', () => {
-        if (picks.get(post.id) === b.key) picks.delete(post.id); else picks.set(post.id, b.key);
-        commitPicks();
-      });
-      seg.appendChild(btn);
-    }
-    seg.addEventListener('keydown', (e) => segKeydown(e, post));
-    card.appendChild(seg);
+
+    const row = mk('div', 'cal-row');
+    const slider = mk('input', 'cal-slider');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '100';
+    slider.step = String(STEP);
+    slider.value = '50';
+    slider.setAttribute('aria-label', `Your score for post ${i + 1} of ${CAL.posts.length}, 0 to 100`);
+    const val = mk('span', 'cal-val');
+    const dot = mk('span', 'dot');
+    dot.setAttribute('aria-hidden', 'true');
+    val.append(dot, mk('b', '', '—'));
+    const clear = mk('button', 'cal-clear');
+    clear.type = 'button';
+    clear.textContent = 'clear';
+    clear.title = 'Remove your rating for this post';
+    // Live readout while dragging; the rating is saved when the drag ends.
+    slider.addEventListener('input', () => {
+      picks.set(post.id, snap(slider.value));
+      syncCard(card, post);
+      el.cutoffBands.textContent = cutoffRated(Number(el.cutoff.value));
+    });
+    slider.addEventListener('change', () => { picks.set(post.id, snap(slider.value)); commitPicks(); });
+    clear.addEventListener('click', () => { picks.delete(post.id); commitPicks(); });
+    row.append(slider, val, clear);
+    card.appendChild(row);
     card.appendChild(mk('div', 'cal-rubric'));
     el.calPosts.appendChild(card);
   });
   syncCalibrationUI();
 }
 
+function syncCard(card, post) {
+  const rated = picks.has(post.id);
+  const score = rated ? picks.get(post.id) : null;
+  card.dataset.rated = String(rated);
+  const slider = card.querySelector('.cal-slider');
+  if (rated) { if (Number(slider.value) !== score) slider.value = String(score); } else slider.value = '50';
+  const val = card.querySelector('.cal-val');
+  val.classList.toggle('unrated', !rated);
+  val.querySelector('.dot').style.background = rated ? scoreColor(score) : 'transparent';
+  val.querySelector('b').textContent = rated ? String(score) : '—';
+  card.querySelector('.cal-clear').hidden = !rated;
+  card.querySelector('.cal-rubric').textContent = rated && Number.isFinite(post.suggested) ? `rubric: ${post.suggested}` : '';
+}
+
 function syncCalibrationUI() {
   for (const card of el.calPosts.children) {
     const post = CAL.posts.find((p) => p.id === card.dataset.id);
-    const picked = picks.get(card.dataset.id);
-    const btns = [...card.querySelectorAll('.seg-btn')];
-    btns.forEach((b, i) => {
-      const on = b.dataset.band === picked;
-      b.setAttribute('aria-checked', String(on));
-      // Roving tabindex: the chosen band is the group's tab stop, or the first band before a choice.
-      b.tabIndex = (picked ? on : i === 0) ? 0 : -1;
-    });
-    const suggested = post && BANDS.find((b) => b.key === post.suggested);
-    card.querySelector('.cal-rubric').textContent = picked && suggested ? `rubric says ${suggested.label}` : '';
+    if (post) syncCard(card, post);
   }
   el.calProgress.textContent = `${picks.size} of ${CAL.posts.length} rated`;
-}
-
-// Arrow keys move within a group and select, as native radios do; Home/End jump to the ends.
-function segKeydown(e, post) {
-  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 'first', End: 'last' }[e.key];
-  if (step === undefined) return;
-  const btns = [...e.currentTarget.querySelectorAll('.seg-btn')];
-  const i = btns.indexOf(document.activeElement);
-  if (i < 0) return;
-  e.preventDefault();
-  const j = step === 'first' ? 0 : step === 'last' ? btns.length - 1 : (i + step + btns.length) % btns.length;
-  const b = btns[j];
-  if (picks.get(post.id) !== b.dataset.band) { picks.set(post.id, b.dataset.band); commitPicks(); }
-  b.focus();
+  if (el.cutoff) el.cutoffBands.textContent = cutoffRated(Number(el.cutoff.value));
 }
 
 // "Check the scale": score the held-out posts with the model and show what it does with this scale.
@@ -353,7 +329,7 @@ function renderCheck(results) {
       const dot = mk('span', 'dot');
       dot.style.background = scoreColor(s);
       dot.setAttribute('aria-hidden', 'true');
-      line.append(dot, mk('b', '', String(s)), mk('span', 'band', bandFor(s).label));
+      line.append(dot, mk('b', '', String(s)));
       if (r.reason) line.appendChild(mk('span', 'reason', `— ${r.reason}`));
     } else {
       line.classList.add('muted');
