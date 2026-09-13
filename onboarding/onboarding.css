@@ -100,7 +100,6 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid #8a
 .cal-val.unrated b { font-weight: 400; }
 .cal-clear { appearance: none; border: 0; background: none; padding: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
 .cal-clear:hover { color: var(--fg); text-decoration: underline; }
-.cal-rubric { min-height: 16px; margin-top: 6px; font-size: 12px; color: var(--muted); }
 
 .cal-check { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
 .cal-check .row { flex-wrap: wrap; }

@@ -255,7 +255,6 @@ function renderCalibration() {
     clear.addEventListener('click', () => { picks.delete(post.id); commitPicks(); });
     row.append(slider, val, clear);
     card.appendChild(row);
-    card.appendChild(mk('div', 'cal-rubric'));
     el.calPosts.appendChild(card);
   });
   syncCalibrationUI();
@@ -272,7 +271,6 @@ function syncCard(card, post) {
   val.querySelector('.dot').style.background = rated ? scoreColor(score) : 'transparent';
   val.querySelector('b').textContent = rated ? String(score) : '—';
   card.querySelector('.cal-clear').hidden = !rated;
-  card.querySelector('.cal-rubric').textContent = rated && Number.isFinite(post.suggested) ? `rubric: ${post.suggested}` : '';
 }
 
 function syncCalibrationUI() {
