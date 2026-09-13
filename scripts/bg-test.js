@@ -675,7 +675,8 @@ const schemaName = (c) => c.body && c.body.response_format && c.body.response_fo
   A.ok(rwSystem.includes('untrusted content'), 'rewrite prompt marks the post as untrusted');
   A.ok(calls[b].body.messages[1].content.includes('<<<POST\n' + rwText + '\nPOST>>>'), 'post framed by markers');
   A.ok(/Strength 5 of 5[^\n]*first person/.test(rwSystem), 'strength 5 stays first person');
-  A.ok(rwSystem.includes('Never longer than the original') && rwSystem.includes('Keep every claim') && rwSystem.includes('Keep @mentions'), 'other rules kept');
+  A.ok(rwSystem.includes('Preserve meaning, not wording') && rwSystem.includes('Keep every claim') && rwSystem.includes('Keep @mentions'), 'other rules kept');
+  A.ok(!/as few words as possible|never longer than the original/i.test(rwSystem), 'no minimal-edit language');
   A.ok(calls[b].body.messages[1].content.startsWith('The reader flagged this post (rated 66/100: fake reason). Rewrite it.\n\nPost (language: en), between the markers:\n<<<POST\n' + rwText), 'context line');
   A.ok(!calls[b].body.messages[1].content.includes('identical to the input'), 'no retry line on the first attempt');
 

@@ -72,7 +72,7 @@ Everything lives in the toolbar popup (pin the icon from the puzzle-piece menu).
 | **Provider and key** | OpenAI, Anthropic, or a custom endpoint, each with its own key. Custom endpoints also take a base URL (no trailing `/chat/completions`). |
 | **Rewrite posts scoring …** | Posts at or above this score get rewritten. 40 is the default (clearly hostile or contemptuous posts). Around 25 also catches snark; 70+ leaves everything but insults and rage bait alone. Changing it re-evaluates posts already on screen. |
 | **Collapse posts scoring …** | Posts at or above this score fold into one line with the score and reason. 85 by default; set it to "never" to rewrite everything instead. |
-| **Rewrite strength** | How much of the original survives. 1 changes only the hostile words; 3 removes contempt and sarcasm but keeps the voice; 4 restates the post as plain, matter-of-fact prose; 5 (default) rewrites from scratch as a bland, neutral statement of what the author meant. Meaning and intent are always kept; wording is not. An extra instruction can be added underneath. |
+| **Rewrite strength** | How much of the post gets rephrased. 1 rephrases only the most inflammatory phrase; 3 rephrases every inflammatory part but keeps the voice; 4 restates the whole post as plain, matter-of-fact prose; 5 (default) rewrites the whole post from scratch as a bland, neutral statement of what the author meant. At every level the model rephrases freely within that scope. Meaning and intent are always kept; wording is not. An extra instruction can be added underneath. |
 | **Score every post** | Off: badges only appear on rewritten and collapsed posts. |
 | **Blur posts until scored** | Blurs each post's text for the second or so it takes to score it, so you never see the original wording of a post that's about to be rewritten. |
 | **Models** | Every post is scored with the cheap, fast model; only posts above the threshold are rewritten, so the rewrite uses a better one. Defaults: `gpt-5.4-nano` / `gpt-5.4-mini` (OpenAI), `claude-haiku-4-5` / `claude-opus-5` (Anthropic). Any model id can be typed in. |
@@ -102,7 +102,7 @@ The model is asked to rate the tone and framing, not the topic, on this scale:
 
 Posts are sent up to 8 per call, and the scoring prompt carries a long set of calibration examples that the provider caches, so each post adds only a few dozen tokens.
 
-Rewrites are instructed to keep every claim, criticism and request, the author's person and language, all mentions, hashtags, links and line breaks, and to never be longer than the original. Everything else is up to the strength setting, from swapping the hostile words to a from-scratch neutral restatement.
+Rewrites are instructed to keep every claim, criticism and request, the author's person and language, all mentions, hashtags, links and line breaks, and to stay roughly the same length. Everything else is up to the strength setting, from rephrasing one inflammatory sentence to a from-scratch neutral restatement of the whole post.
 
 ## Cost
 

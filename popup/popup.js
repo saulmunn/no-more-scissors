@@ -44,11 +44,11 @@ const PROVIDERS = {
 };
 
 const STRENGTH_HINTS = {
-  1: 'Only the hostile words change',
-  2: 'Hostile words and exaggeration toned down',
-  3: 'Contempt and sarcasm removed, voice kept',
-  4: 'Restated as plain, matter-of-fact prose',
-  5: 'Restated from scratch, bland and neutral',
+  1: 'Only the most inflammatory phrase is rephrased',
+  2: 'Every inflammatory phrase is rephrased',
+  3: 'All inflammatory parts rephrased, voice kept',
+  4: 'Whole post restated as plain prose',
+  5: 'Whole post rewritten from scratch, bland and neutral',
 };
 
 const $ = (id) => document.getElementById(id);
