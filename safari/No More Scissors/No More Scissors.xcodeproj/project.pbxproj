@@ -1,0 +1,622 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04DF04BC3058CDF70050383B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF04BB3058CDF70050383B /* AppDelegate.swift */; };
+		04DF04C03058CDF70050383B /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04BE3058CDF70050383B /* Main.html */; };
+		04DF04C23058CDF70050383B /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04C13058CDF70050383B /* Icon.png */; };
+		04DF04C43058CDF70050383B /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04C33058CDF70050383B /* Style.css */; };
+		04DF04C63058CDF70050383B /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF04C53058CDF70050383B /* SceneDelegate.swift */; };
+		04DF04C83058CDF70050383B /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF04C73058CDF70050383B /* ViewController.swift */; };
+		04DF04CB3058CDF70050383B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04C93058CDF70050383B /* LaunchScreen.storyboard */; };
+		04DF04CE3058CDF70050383B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04CC3058CDF70050383B /* Main.storyboard */; };
+		04DF04D63058CDF90050383B /* No More Scissors Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04DF04D53058CDF90050383B /* No More Scissors Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		04DF04DB3058CDF90050383B /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF04DA3058CDF90050383B /* SafariWebExtensionHandler.swift */; };
+		04DF04DD3058CDF90050383B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04CF3058CDF90050383B /* Assets.xcassets */; };
+		04DF04EE3058CDF90050383B /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04E83058CDF90050383B /* popup */; };
+		04DF04EF3058CDF90050383B /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04E93058CDF90050383B /* background.js */; };
+		04DF04F03058CDF90050383B /* content in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04EA3058CDF90050383B /* content */; };
+		04DF04F13058CDF90050383B /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04EB3058CDF90050383B /* icons */; };
+		04DF04F23058CDF90050383B /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04EC3058CDF90050383B /* manifest.json */; };
+		04DF04F33058CDF90050383B /* onboarding in Resources */ = {isa = PBXBuildFile; fileRef = 04DF04ED3058CDF90050383B /* onboarding */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		04DF04D73058CDF90050383B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 04DF04B03058CDF70050383B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 04DF04D43058CDF90050383B;
+			remoteInfo = "No More Scissors Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		04DF04E33058CDF90050383B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				04DF04D63058CDF90050383B /* No More Scissors Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		04DF04B83058CDF70050383B /* No More Scissors.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "No More Scissors.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		04DF04BB3058CDF70050383B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		04DF04BF3058CDF70050383B /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		04DF04C13058CDF70050383B /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		04DF04C33058CDF70050383B /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		04DF04C53058CDF70050383B /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		04DF04C73058CDF70050383B /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		04DF04CA3058CDF70050383B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		04DF04CD3058CDF70050383B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		04DF04CF3058CDF90050383B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		04DF04D03058CDF90050383B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		04DF04D53058CDF90050383B /* No More Scissors Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "No More Scissors Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		04DF04DA3058CDF90050383B /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		04DF04DC3058CDF90050383B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		04DF04E83058CDF90050383B /* popup */ = {isa = PBXFileReference; lastKnownFileType = folder; name = popup; path = ../../extension/popup; sourceTree = "<group>"; };
+		04DF04E93058CDF90050383B /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../extension/background.js; sourceTree = "<group>"; };
+		04DF04EA3058CDF90050383B /* content */ = {isa = PBXFileReference; lastKnownFileType = folder; name = content; path = ../../extension/content; sourceTree = "<group>"; };
+		04DF04EB3058CDF90050383B /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../extension/icons; sourceTree = "<group>"; };
+		04DF04EC3058CDF90050383B /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../extension/manifest.json; sourceTree = "<group>"; };
+		04DF04ED3058CDF90050383B /* onboarding */ = {isa = PBXFileReference; lastKnownFileType = folder; name = onboarding; path = ../../extension/onboarding; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		04DF04B53058CDF70050383B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04DF04D23058CDF90050383B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		04DF04AF3058CDF70050383B = {
+			isa = PBXGroup;
+			children = (
+				04DF04BA3058CDF70050383B /* No More Scissors */,
+				04DF04D93058CDF90050383B /* No More Scissors Extension */,
+				04DF04B93058CDF70050383B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		04DF04B93058CDF70050383B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				04DF04B83058CDF70050383B /* No More Scissors.app */,
+				04DF04D53058CDF90050383B /* No More Scissors Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		04DF04BA3058CDF70050383B /* No More Scissors */ = {
+			isa = PBXGroup;
+			children = (
+				04DF04BB3058CDF70050383B /* AppDelegate.swift */,
+				04DF04C53058CDF70050383B /* SceneDelegate.swift */,
+				04DF04C73058CDF70050383B /* ViewController.swift */,
+				04DF04C93058CDF70050383B /* LaunchScreen.storyboard */,
+				04DF04CC3058CDF70050383B /* Main.storyboard */,
+				04DF04CF3058CDF90050383B /* Assets.xcassets */,
+				04DF04D03058CDF90050383B /* Info.plist */,
+				04DF04BD3058CDF70050383B /* Resources */,
+			);
+			path = "No More Scissors";
+			sourceTree = "<group>";
+		};
+		04DF04BD3058CDF70050383B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				04DF04BE3058CDF70050383B /* Main.html */,
+				04DF04C13058CDF70050383B /* Icon.png */,
+				04DF04C33058CDF70050383B /* Style.css */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		04DF04D93058CDF90050383B /* No More Scissors Extension */ = {
+			isa = PBXGroup;
+			children = (
+				04DF04E73058CDF90050383B /* Resources */,
+				04DF04DA3058CDF90050383B /* SafariWebExtensionHandler.swift */,
+				04DF04DC3058CDF90050383B /* Info.plist */,
+			);
+			path = "No More Scissors Extension";
+			sourceTree = "<group>";
+		};
+		04DF04E73058CDF90050383B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				04DF04E83058CDF90050383B /* popup */,
+				04DF04E93058CDF90050383B /* background.js */,
+				04DF04EA3058CDF90050383B /* content */,
+				04DF04EB3058CDF90050383B /* icons */,
+				04DF04EC3058CDF90050383B /* manifest.json */,
+				04DF04ED3058CDF90050383B /* onboarding */,
+			);
+			name = Resources;
+			path = "No More Scissors Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		04DF04B73058CDF70050383B /* No More Scissors */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04DF04E43058CDF90050383B /* Build configuration list for PBXNativeTarget "No More Scissors" */;
+			buildPhases = (
+				04DF04B43058CDF70050383B /* Sources */,
+				04DF04B53058CDF70050383B /* Frameworks */,
+				04DF04B63058CDF70050383B /* Resources */,
+				04DF04E33058CDF90050383B /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				04DF04D83058CDF90050383B /* PBXTargetDependency */,
+			);
+			name = "No More Scissors";
+			packageProductDependencies = (
+			);
+			productName = "No More Scissors";
+			productReference = 04DF04B83058CDF70050383B /* No More Scissors.app */;
+			productType = "com.apple.product-type.application";
+		};
+		04DF04D43058CDF90050383B /* No More Scissors Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04DF04E03058CDF90050383B /* Build configuration list for PBXNativeTarget "No More Scissors Extension" */;
+			buildPhases = (
+				04DF04D13058CDF90050383B /* Sources */,
+				04DF04D23058CDF90050383B /* Frameworks */,
+				04DF04D33058CDF90050383B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "No More Scissors Extension";
+			packageProductDependencies = (
+			);
+			productName = "No More Scissors Extension";
+			productReference = 04DF04D53058CDF90050383B /* No More Scissors Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		04DF04B03058CDF70050383B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					04DF04B73058CDF70050383B = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					04DF04D43058CDF90050383B = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = 04DF04B33058CDF70050383B /* Build configuration list for PBXProject "No More Scissors" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 04DF04AF3058CDF70050383B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 04DF04B93058CDF70050383B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				04DF04B73058CDF70050383B /* No More Scissors */,
+				04DF04D43058CDF90050383B /* No More Scissors Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		04DF04B63058CDF70050383B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04DF04C23058CDF70050383B /* Icon.png in Resources */,
+				04DF04CE3058CDF70050383B /* Main.storyboard in Resources */,
+				04DF04CB3058CDF70050383B /* LaunchScreen.storyboard in Resources */,
+				04DF04C03058CDF70050383B /* Main.html in Resources */,
+				04DF04DD3058CDF90050383B /* Assets.xcassets in Resources */,
+				04DF04C43058CDF70050383B /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04DF04D33058CDF90050383B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04DF04F03058CDF90050383B /* content in Resources */,
+				04DF04F33058CDF90050383B /* onboarding in Resources */,
+				04DF04F13058CDF90050383B /* icons in Resources */,
+				04DF04F23058CDF90050383B /* manifest.json in Resources */,
+				04DF04EF3058CDF90050383B /* background.js in Resources */,
+				04DF04EE3058CDF90050383B /* popup in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		04DF04B43058CDF70050383B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04DF04C83058CDF70050383B /* ViewController.swift in Sources */,
+				04DF04BC3058CDF70050383B /* AppDelegate.swift in Sources */,
+				04DF04C63058CDF70050383B /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04DF04D13058CDF90050383B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04DF04DB3058CDF90050383B /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		04DF04D83058CDF90050383B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 04DF04D43058CDF90050383B /* No More Scissors Extension */;
+			targetProxy = 04DF04D73058CDF90050383B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		04DF04BE3058CDF70050383B /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04DF04BF3058CDF70050383B /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		04DF04C93058CDF70050383B /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04DF04CA3058CDF70050383B /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		04DF04CC3058CDF70050383B /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04DF04CD3058CDF70050383B /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		04DF04DE3058CDF90050383B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		04DF04DF3058CDF90050383B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		04DF04E13058CDF90050383B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "No More Scissors Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "No More Scissors Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.saulmunn.nomorescissors.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		04DF04E23058CDF90050383B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "No More Scissors Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "No More Scissors Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.saulmunn.nomorescissors.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		04DF04E53058CDF90050383B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "No More Scissors/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "No More Scissors";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.saulmunn.nomorescissors;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		04DF04E63058CDF90050383B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "No More Scissors/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "No More Scissors";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.saulmunn.nomorescissors;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		04DF04B33058CDF70050383B /* Build configuration list for PBXProject "No More Scissors" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04DF04DE3058CDF90050383B /* Debug */,
+				04DF04DF3058CDF90050383B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		04DF04E03058CDF90050383B /* Build configuration list for PBXNativeTarget "No More Scissors Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04DF04E13058CDF90050383B /* Debug */,
+				04DF04E23058CDF90050383B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		04DF04E43058CDF90050383B /* Build configuration list for PBXNativeTarget "No More Scissors" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04DF04E53058CDF90050383B /* Debug */,
+				04DF04E63058CDF90050383B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 04DF04B03058CDF70050383B /* Project object */;
+}

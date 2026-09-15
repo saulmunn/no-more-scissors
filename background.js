@@ -1240,6 +1240,27 @@ async function handle(msg, sender) {
   }
 }
 
+// Browsers that ignore `world: "MAIN"` in manifest content_scripts (Safari 16.4+ supports it only
+// through the scripting API) get the page hook registered here instead. Both paths may run in
+// Chrome; the hook guards itself with window.__nmsHooked.
+async function registerPageHook() {
+  if (!chrome.scripting || !chrome.scripting.registerContentScripts) return;
+  try { await chrome.scripting.unregisterContentScripts({ ids: ['nms-page-hook'] }); } catch (_) {}
+  try {
+    await chrome.scripting.registerContentScripts([{
+      id: 'nms-page-hook',
+      matches: ['https://x.com/*', 'https://twitter.com/*'],
+      js: ['content/page-hook.js'],
+      runAt: 'document_start',
+      world: 'MAIN',
+      persistAcrossSessions: false,
+    }]);
+  } catch (err) {
+    console.warn('[nms] page hook not registered:', err && err.message);
+  }
+}
+registerPageHook();
+
 chrome.runtime.onInstalled.addListener((details) => {
   ready.catch(() => {});
   if (details && details.reason === 'install') openOnboarding();

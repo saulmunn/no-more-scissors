@@ -45,6 +45,7 @@ globalThis.chrome = {
     sync: { async get() { return { ...sync }; }, async remove(keys) { for (const k of keys) delete sync[k]; } },
     onChanged: { addListener: (l) => changeListeners.push(l) },
   },
+  scripting: { registered: [], async registerContentScripts(list) { this.registered.push(...list); }, async unregisterContentScripts() {} },
   runtime: {
     onMessage: { addListener: (l) => { onMessage = l; } },
     onInstalled: { addListener: (l) => { onInstalled = l; } },

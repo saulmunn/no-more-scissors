@@ -24,6 +24,8 @@
   const BLUR_MAX_MS = 4000;
 
   const S = NMS.settings;           // live settings object owned by common.js
+  const notes = new Map();          // post id -> full text of a long post, from content/page-hook.js
+  const NOTES_MAX = 3000;
   const units = new Map();          // textDiv -> state
   const memo = new Map();           // text -> complete result for the current generation
   let gen = 0;                      // bumped on every settings change; older responses are ignored
@@ -183,19 +185,59 @@
       id: quote ? (NMS.postId(quote) || 'q' + textKey(text)) : NMS.postId(article),
       author: NMS.authorOf(scope),
       // Long posts arrive cut off (~275 chars, mid-sentence) with X's "Show more" button right after the text.
-      truncated: !!(textDiv.parentElement && textDiv.parentElement.querySelector(`:scope > ${SEL_SHOW_MORE}`)),
+      showMore: textDiv.parentElement ? textDiv.parentElement.querySelector(`:scope > ${SEL_SHOW_MORE}`) : null,
+      truncated: false, full: false,
       skipped: text.length < MIN_CHARS,
       result: null, retried: false, forced: false, forcedOriginal: false, noteText: '',
       swapped: false, collapsed: false, showingOriginal: false,
       badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, toggleWrap: null, toggleLink: null,
       collapseRow: null, noteEl: null, hiddenBlocks: [], blurTimer: 0, pending: false, top: 0,
     };
+    if (state.showMore) applyFullText(state);
     units.set(textDiv, state);
     if (state.skipped) return;
     textDiv.classList.add('nms-unit');
     const cached = memo.get(text);
     if (cached) render(state, cached); else enqueue(state);
   }
+
+  // A cut-off post is scored and rewritten on its full text when the page hook has seen it in X's
+  // own GraphQL responses; otherwise it stays truncated and the rewrite is told to stop where X did.
+  function applyFullText(state) {
+    const fullText = !state.quoted && state.id ? notes.get(state.id) : null;
+    if (fullText && fullText.length > state.text.length) {
+      state.text = fullText;
+      state.full = true;
+      state.truncated = false;
+    } else {
+      state.truncated = true;
+    }
+  }
+
+  // Full texts that arrive after a unit was created: switch it over and score again.
+  function upgradeTruncated() {
+    for (const st of units.values()) {
+      if (!st.showMore || st.full || st.quoted || !st.id || !notes.has(st.id) || !st.textDiv.isConnected) continue;
+      applyFullText(st);
+      if (!st.full) continue;
+      st.result = null;
+      st.retried = false;
+      enqueue(st);
+    }
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.type !== 'nms-notes' || !e.data.notes || typeof e.data.notes !== 'object') return;
+    let added = false;
+    for (const [id, text] of Object.entries(e.data.notes)) {
+      if (!/^\d{5,25}$/.test(id) || typeof text !== 'string' || !text.trim()) continue;
+      if (notes.has(id)) continue;
+      notes.set(id, text);
+      added = true;
+    }
+    while (notes.size > NOTES_MAX) notes.delete(notes.keys().next().value);
+    if (added) upgradeTruncated();
+  });
 
   function collectUnits(article) {
     let ownSeen = false;
@@ -219,6 +261,7 @@
     for (const b of state.hiddenBlocks) b.classList.remove('nms-hidden');
     state.hiddenBlocks = [];
     state.textDiv.classList.remove('nms-hidden', 'nms-pending', 'nms-unit');
+    if (state.showMore) state.showMore.classList.remove('nms-hidden');
   }
 
   function prune() {
@@ -426,6 +469,7 @@
     } else {
       if (state.rewriteDiv) { state.rewriteDiv.remove(); state.rewriteDiv = null; state.rewriteText = null; }
       if (state.toggleWrap) { state.toggleWrap.remove(); state.toggleWrap = null; state.toggleLink = null; }
+      if (state.showMore) state.showMore.classList.remove('nms-hidden');
       state.swapped = false;
       state.showingOriginal = false;
     }
@@ -439,6 +483,8 @@
     const orig = !!state.showingOriginal;
     state.textDiv.classList.toggle('nms-hidden', !orig);
     state.rewriteDiv.classList.toggle('nms-hidden', orig);
+    // A rewrite of the full text already shows the whole post: X's "Show more" only returns with the original.
+    if (state.showMore) state.showMore.classList.toggle('nms-hidden', !orig && state.full);
     state.toggleLink.textContent = orig ? 'Show rewrite' : 'Show original';
   }
 

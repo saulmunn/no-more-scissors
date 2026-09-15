@@ -4,7 +4,8 @@
   "version": "2.1.0",
   "description": "Scores every post on your X timeline for inflammatory wording and calmly rewords the ones above your threshold.",
   "permissions": [
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://x.com/*",
@@ -35,6 +36,17 @@
     "128": "icons/icon128.png"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content/page-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": [
         "https://x.com/*",

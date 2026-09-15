@@ -104,3 +104,6 @@ details summary:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px;
 
 input[type="range"].plain { background: color-mix(in srgb, var(--fg) 22%, transparent); }
 .link.small { font-size: 12px; padding: 0; margin-top: 4px; }
+
+/* Safari on iOS shows the popup in a sheet: fill it instead of a fixed 330px column. */
+@media (max-width: 400px) { body { width: 100%; } }
