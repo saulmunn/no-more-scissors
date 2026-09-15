@@ -10,6 +10,9 @@
   if (window.__nmsHooked) return;
   window.__nmsHooked = true;
 
+  const savedNotes = new Map();
+  const NOTES_MAX = 3000;
+
   const isGraphql = (url) => typeof url === 'string' && url.includes('/i/api/graphql/');
 
   function collect(node, out, depth) {
@@ -27,8 +30,16 @@
   function report(json) {
     const notes = {};
     collect(json, notes, 0);
+    for (const [id, text] of Object.entries(notes)) savedNotes.set(id, text);
+    while (savedNotes.size > NOTES_MAX) savedNotes.delete(savedNotes.keys().next().value);
     if (Object.keys(notes).length) window.postMessage({ type: 'nms-notes', notes }, location.origin);
   }
+
+  // The hook starts before the content script. Replay early responses once its listener is ready.
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || e.origin !== location.origin || e.data?.type !== 'nms-notes-ready') return;
+    if (savedNotes.size) window.postMessage({ type: 'nms-notes', notes: Object.fromEntries(savedNotes) }, location.origin);
+  });
 
   const origFetch = window.fetch;
   window.fetch = function (input, init) {

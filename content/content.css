@@ -4,6 +4,12 @@
 
 .nms-hidden { display: none !important; }
 
+/* X can reset className on its native button during a React render. Tie its visibility to our
+   sibling instead, so it stays hidden for both the preview and expanded full rewrite. */
+.nms-rewrite.nms-full-rewrite:not(.nms-hidden) ~ [data-testid="tweet-text-show-more-link"] {
+  display: none !important;
+}
+
 /* Blur while a unit waits for its score; removing the class animates the un-blur. */
 .nms-unit { transition: filter .35s ease; }
 .nms-unit.nms-pending { filter: blur(5px); }
@@ -40,6 +46,7 @@
   cursor: pointer;
   user-select: none;
 }
+.nms-show-more { display: block; width: fit-content; }
 .nms-link:hover { text-decoration: underline; }
 .nms-link.nms-busy { opacity: .5; pointer-events: none; }
 /* Header toggle: "· Show original" right after the score, in the same muted metadata style;

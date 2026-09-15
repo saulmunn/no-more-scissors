@@ -16,7 +16,7 @@
   const SEL_HEADER = '[data-testid="User-Name"]';
   const SEL_ACTIONS = 'div[role="group"]';
   const SEL_MEDIA = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="card.wrapper"], div[role="link"]';
-  const SEL_OURS = '.nms-rewrite, .nms-collapsed, .nms-note';
+  const SEL_OURS = '.nms-rewrite, .nms-show-more, .nms-collapsed, .nms-note';
   const SEL_SHOW_MORE = '[data-testid="tweet-text-show-more-link"]';
   const MIN_CHARS = 8;
   const BATCH = 8;
@@ -158,7 +158,7 @@
   // Keep our siblings in a fixed order right after the text element.
   function place(state) {
     let prev = state.textDiv;
-    for (const el of [state.rewriteDiv, state.collapseRow, state.noteEl]) {
+    for (const el of [state.rewriteDiv, state.rewriteMoreEl, state.collapseRow, state.noteEl]) {
       if (!el) continue;
       if (el.parentNode !== prev.parentNode || el.previousElementSibling !== prev) prev.insertAdjacentElement('afterend', el);
       prev = el;
@@ -178,7 +178,7 @@
     for (const stale of textDiv.parentElement ? textDiv.parentElement.querySelectorAll(`:scope > :is(${SEL_OURS})`) : []) stale.remove();
     const text = NMS.extractText(textDiv);
     const state = {
-      textDiv, article, scope, quoted: !!quote, text,
+      textDiv, article, scope, quoted: !!quote, text, revision: 0,
       lang: textDiv.getAttribute('lang') || '',
       // Quoted posts carry no /status/ link, so key their author history by the quoted text instead
       // of misattributing the quoting post's id.
@@ -186,18 +186,18 @@
       author: NMS.authorOf(scope),
       // Long posts arrive cut off (~275 chars, mid-sentence) with X's "Show more" button right after the text.
       showMore: textDiv.parentElement ? textDiv.parentElement.querySelector(`:scope > ${SEL_SHOW_MORE}`) : null,
-      truncated: false, full: false,
+      truncated: false, full: false, rewriteExpanded: false, previewLength: previewLength(text),
       skipped: text.length < MIN_CHARS,
       result: null, retried: false, forced: false, forcedOriginal: false, noteText: '',
       swapped: false, collapsed: false, showingOriginal: false,
-      badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, toggleWrap: null, toggleLink: null,
+      badgeEl: null, badgeKey: '', rewriteDiv: null, rewriteText: null, rewriteMoreEl: null, toggleWrap: null, toggleLink: null,
       collapseRow: null, noteEl: null, hiddenBlocks: [], blurTimer: 0, pending: false, top: 0,
     };
     if (state.showMore) applyFullText(state);
     units.set(textDiv, state);
     if (state.skipped) return;
     textDiv.classList.add('nms-unit');
-    const cached = memo.get(text);
+    const cached = memo.get(state.text);
     if (cached) render(state, cached); else enqueue(state);
   }
 
@@ -214,20 +214,52 @@
     }
   }
 
-  // Full texts that arrive after a unit was created: switch it over and score again.
+  // X expands posts in place, often keeping the same tweetText element. Re-read its original
+  // content and Show more control, and invalidate any response requested for the previous text.
+  function syncUnit(state) {
+    const domText = NMS.extractText(state.textDiv);
+    const showMore = state.textDiv.parentElement?.querySelector(`:scope > ${SEL_SHOW_MORE}`) || null;
+    const previousText = state.text;
+    const previousTruncated = state.truncated;
+    const previousFull = state.full;
+    const previousPreviewLength = state.previewLength;
+    const showMoreChanged = state.showMore !== showMore;
+    if (showMoreChanged && state.showMore) state.showMore.classList.remove('nms-hidden');
+    state.showMore = showMore;
+    state.previewLength = previewLength(domText);
+    state.text = domText;
+    state.full = false;
+    state.truncated = false;
+    if (showMore) applyFullText(state);
+    if (state.text === previousText && state.truncated === previousTruncated) {
+      if (showMoreChanged || state.full !== previousFull || state.previewLength !== previousPreviewLength) applyVisibility(state);
+      return;
+    }
+    state.revision++;
+    // Remove the obsolete overlay immediately so it cannot hide an expanded original while waiting.
+    teardownUnit(state);
+    state.badgeEl = state.rewriteDiv = state.rewriteMoreEl = state.toggleWrap = state.toggleLink = state.collapseRow = state.noteEl = null;
+    state.badgeKey = '';
+    state.rewriteText = null;
+    state.swapped = state.collapsed = false;
+    state.result = null;
+    state.retried = false;
+    state.skipped = state.text.length < MIN_CHARS;
+    if (state.skipped) return;
+    state.textDiv.classList.add('nms-unit');
+    const cached = memo.get(state.text);
+    if (cached) render(state, cached); else enqueue(state);
+  }
+
+  // Full text can also arrive after an initial preview was already scored.
   function upgradeTruncated() {
     for (const st of units.values()) {
-      if (!st.showMore || st.full || st.quoted || !st.id || !notes.has(st.id) || !st.textDiv.isConnected) continue;
-      applyFullText(st);
-      if (!st.full) continue;
-      st.result = null;
-      st.retried = false;
-      enqueue(st);
+      if (st.showMore && !st.full && !st.quoted && st.id && notes.has(st.id) && st.textDiv.isConnected) syncUnit(st);
     }
   }
 
   window.addEventListener('message', (e) => {
-    if (e.source !== window || !e.data || e.data.type !== 'nms-notes' || !e.data.notes || typeof e.data.notes !== 'object') return;
+    if (e.source !== window || e.origin !== location.origin || !e.data || e.data.type !== 'nms-notes' || !e.data.notes || typeof e.data.notes !== 'object') return;
     let added = false;
     for (const [id, text] of Object.entries(e.data.notes)) {
       if (!/^\d{5,25}$/.test(id) || typeof text !== 'string' || !text.trim()) continue;
@@ -239,11 +271,13 @@
     if (added) upgradeTruncated();
   });
 
+  window.postMessage({ type: 'nms-notes-ready' }, location.origin);
+
   function collectUnits(article) {
     let ownSeen = false;
     for (const textDiv of article.querySelectorAll(SEL_TEXT)) {
       const quote = quoteOf(textDiv, article);
-      if (units.has(textDiv)) { if (!quote) ownSeen = true; continue; }
+      if (units.has(textDiv)) { syncUnit(units.get(textDiv)); if (!quote) ownSeen = true; continue; }
       if (!quote) { if (ownSeen) continue; ownSeen = true; }
       addUnit(textDiv, article, quote);
     }
@@ -257,7 +291,7 @@
 
   function teardownUnit(state) {
     unblur(state);
-    for (const el of [state.rewriteDiv, state.toggleWrap, state.collapseRow, state.noteEl, state.badgeEl]) if (el) el.remove();
+    for (const el of [state.rewriteDiv, state.rewriteMoreEl, state.toggleWrap, state.collapseRow, state.noteEl, state.badgeEl]) if (el) el.remove();
     for (const b of state.hiddenBlocks) b.classList.remove('nms-hidden');
     state.hiddenBlocks = [];
     state.textDiv.classList.remove('nms-hidden', 'nms-pending', 'nms-unit');
@@ -328,6 +362,7 @@
 
   async function send(states) {
     const g = gen;
+    const revisions = states.map((st) => st.revision);
     const items = states.map((st) => {
       const it = { id: st.id, text: st.text, lang: st.lang, author: st.author };
       if (st.forced) it.force = true;
@@ -338,10 +373,15 @@
     const res = await NMS.bg({ type: 'analyze', items });
     if (g !== gen) return;
     if (!NMS.alive) { die(); return; }
-    if (!res || !res.ok) { for (const st of states) applyError(st, (res && res.error) || 'No response'); schedulePageCounts(); return; }
+    if (!res || !res.ok) {
+      states.forEach((st, i) => { if (st.revision === revisions[i] && units.get(st.textDiv) === st) applyError(st, (res && res.error) || 'No response'); });
+      schedulePageCounts();
+      return;
+    }
     const results = Array.isArray(res.results) ? res.results : [];
     states.forEach((st, i) => {
       const r = results[i];
+      if (st.revision !== revisions[i]) return;
       if (!st.textDiv.isConnected || units.get(st.textDiv) !== st) { if (r && r.ok && !st.forced && !st.retried) memo.set(st.text, r); return; }
       if (!r) applyError(st, 'No result');
       else if (!r.ok) applyError(st, r.error || 'Unknown error');
@@ -444,12 +484,11 @@
     enqueue(state);
   }
 
-  function setSwap(state, on, result) {
+  function setSwap(state, on) {
     if (on) {
-      let fresh = false;
       if (!state.rewriteDiv || !state.rewriteDiv.isConnected) {
         state.rewriteDiv = makeRewriteDiv(state.textDiv);
-        fresh = true;
+        state.rewriteText = null;
       }
       if (!state.toggleWrap || !state.toggleWrap.isConnected) {
         const wrap = NMS.el('span', 'nms-toggle nms-ui');
@@ -460,14 +499,11 @@
         state.toggleWrap = wrap;
       }
       placeToggle(state);
-      if (fresh || state.rewriteText !== result.rewrite) {
-        state.rewriteDiv.firstElementChild.replaceChildren(renderRewrite(result.rewrite, state.textDiv));
-        state.rewriteText = result.rewrite;
-      }
-      if (!state.swapped) state.showingOriginal = !!state.forcedOriginal;
+      if (!state.swapped) state.showingOriginal = state.showingOriginal || !!state.forcedOriginal;
       state.swapped = true;
     } else {
       if (state.rewriteDiv) { state.rewriteDiv.remove(); state.rewriteDiv = null; state.rewriteText = null; }
+      if (state.rewriteMoreEl) { state.rewriteMoreEl.remove(); state.rewriteMoreEl = null; }
       if (state.toggleWrap) { state.toggleWrap.remove(); state.toggleWrap = null; state.toggleLink = null; }
       if (state.showMore) state.showMore.classList.remove('nms-hidden');
       state.swapped = false;
@@ -477,13 +513,49 @@
     applyVisibility(state);
   }
 
+  // Match the amount X shows in its original preview, excluding its trailing ellipsis.
+  function previewLength(text) {
+    return Array.from(text.replace(/(?:…|\.{3})\s*$/u, '').trimEnd()).length;
+  }
+
+  function updateRewrite(state) {
+    const rewrite = state.result.rewrite;
+    const chars = Array.from(rewrite);
+    const shortened = state.full && state.showMore && !state.rewriteExpanded && chars.length > state.previewLength;
+    const visibleText = shortened ? chars.slice(0, state.previewLength).join('').trimEnd() + '…' : rewrite;
+    if (state.rewriteText !== visibleText) {
+      state.rewriteDiv.firstElementChild.replaceChildren(renderRewrite(visibleText, state.textDiv));
+      state.rewriteText = visibleText;
+    }
+    if (shortened) {
+      if (!state.rewriteMoreEl || !state.rewriteMoreEl.isConnected) {
+        state.rewriteMoreEl = makeLink(state.showMore.textContent.trim() || 'Show more', () => {
+          state.rewriteExpanded = true;
+          applyVisibility(state);
+          state.rewriteDiv.tabIndex = -1;
+          state.rewriteDiv.focus({ preventScroll: true });
+        });
+        state.rewriteMoreEl.classList.add('nms-show-more');
+        state.rewriteMoreEl.setAttribute('aria-expanded', 'false');
+      }
+      NMS.copyTextStyle(state.showMore, state.rewriteMoreEl);
+    } else if (state.rewriteMoreEl) {
+      state.rewriteMoreEl.remove();
+      state.rewriteMoreEl = null;
+    }
+    place(state);
+  }
+
   function applyVisibility(state) {
     if (state.collapsed) { state.textDiv.classList.add('nms-hidden'); return; }
     if (!state.swapped) { state.textDiv.classList.remove('nms-hidden'); return; }
+    updateRewrite(state);
     const orig = !!state.showingOriginal;
     state.textDiv.classList.toggle('nms-hidden', !orig);
     state.rewriteDiv.classList.toggle('nms-hidden', orig);
-    // A rewrite of the full text already shows the whole post: X's "Show more" only returns with the original.
+    state.rewriteDiv.classList.toggle('nms-full-rewrite', state.full);
+    // Use our control for a complete rewrite; keep X's control for originals and partial rewrites.
+    if (state.rewriteMoreEl) state.rewriteMoreEl.classList.toggle('nms-hidden', orig);
     if (state.showMore) state.showMore.classList.toggle('nms-hidden', !orig && state.full);
     state.toggleLink.textContent = orig ? 'Show rewrite' : 'Show original';
   }
@@ -530,7 +602,7 @@
     if (!state.forced) { if (memo.size > 3000) memo.clear(); memo.set(state.text, result); }
     const swap = flagged && !hidden && differs;
     setCollapsed(state, hidden, result);
-    setSwap(state, swap, result);
+    setSwap(state, swap);
     const wantBadge = S.showScores || swap || rawHidden || state.forced;
     setBadge(state, wantBadge ? NMS.badge(score, result.reason, { separator: true }) : null);
     if (state.forcedOriginal && state.noteText && !state.noteEl && (swap || rawHidden)) addNote(state);
@@ -564,7 +636,7 @@
   }
 
   const observer = new MutationObserver((mutations) => {
-    for (const m of mutations) if (m.addedNodes.length) { scan(); return; }
+    for (const m of mutations) if (m.type === 'characterData' || m.addedNodes.length || m.removedNodes.length) { scan(); return; }
   });
 
   document.addEventListener('visibilitychange', () => { if (!document.hidden) scan(); });
@@ -631,7 +703,7 @@
   NMS.core = { units, forceOriginal, refresh: refreshAll };
 
   NMS.ready.then(() => {
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, characterData: true, subtree: true });
     if (S.enabled) scan();
   });
 

@@ -136,7 +136,7 @@ Posts are untrusted input to the model. The extension strips invisible character
 
 - Posts are scored after they appear, so without the blur option you may glimpse the original for a moment.
 - The rewrite is plain text with links restored for mentions, hashtags, and URLs. Anything more exotic in the original (cashtags, emoji rendered as images) shows up as plain characters.
-- Long posts arrive on the timeline cut off by X (about 275 characters, then a "Show more" button). The extension reads the full text from X's own timeline responses, so such posts are scored and rewritten in full and the rewrite shows the whole post in place. If the full text wasn't available (for example a post restored from cache after navigating back), the rewrite covers the visible part and ends with an ellipsis.
+- Long posts arrive on the timeline cut off by X (about 275 characters, then a "Show more" button). The extension reads the full text from X's own timeline responses, so such posts are scored and rewritten in full and the rewrite starts with a preview of similar length to X's original. Its "Show more" control expands the full rewrite in place. If the full text wasn't available (for example a post restored from cache after navigating back), the rewrite covers the visible part and ends with an ellipsis. Expanding "Show more" refreshes the rewrite with the expanded text.
 - Custom endpoints need a model that can return JSON; the extension falls back from strict schemas to plain JSON, but very small local models sometimes still wander.
 - X changes its markup now and then. If badges stop appearing, the selectors at the top of `content/content.js` are the first place to look.
 
@@ -144,10 +144,13 @@ Posts are untrusted input to the model. The extension strips invisible character
 
 ```
 node scripts/bg-test.js               # background.js unit test with a fake chrome + fetch
+node scripts/content-test.js          # browser regressions (requires Playwright + Chromium)
 scripts/build-test-bundle.sh out.js   # shim + CSS + content scripts in one file to paste into an x.com console
 scripts/package.sh                    # dist/no-more-scissors-<version>.zip for the Web Store / AMO
 python3 scripts/make-promo.py         # placeholder store art in store/
 python3 scripts/make-icons.py         # regenerates icons/ with Pillow
 ```
+
+For the browser regressions, install `playwright` and its Chromium browser, or set `NMS_TEST_CHANNEL=chrome` to use an installed Chrome. These checks use local tweet fixtures and fake analysis responses; they make no real provider calls.
 
 The test bundle fakes the background worker with deterministic scores, so the timeline UI can be checked without an API key or an installed extension. On an unpacked install, `window.postMessage({ type: 'nms-dev-reload' }, '*')` from an x.com console reloads the extension. `docs/architecture.md` is the contract between the pieces: settings keys, message shapes, providers, and prices.
